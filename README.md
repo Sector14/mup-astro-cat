@@ -100,10 +100,10 @@ Looking into port, locking tab on bottom, left to right:-
 
 Looking into port with locking tab on bottom, left to right:- 
 
-  1 - GND
-  2 - NC
-  3 - Tx
-  4 - Rx
+  - GND
+  - NC
+  - Tx
+  - Rx
 
 Note: Tx and Rx should cross over in cable so Tx on PC is Rx on Autostar.
 
@@ -125,6 +125,18 @@ Length: 22mm (0.866in)
 |Part No.     | Similar | Step Angle Degrees | Steps Per Revolution | Reduction | Nominal Voltage VDC | Min Holding Torque (oz-in)| Pull-out Torque @175p/s (oz-in) | Detent Torque (oz-in) | Rotor Inertia (oz-in) | Weight (oz) | Length (in) |
 |LSG35012F76P |3004-003 |0.100 |3600 |75 |12 |150 |101 |150.0 |0.0372 |8.6 |1.55
 
+Looking into 6p6c port on Pi Hat, locking tab on bottom, left to right:-
+
+  1 - 12v
+  2 - Out1
+  3 - Out2
+  4 - Out3
+  5 - Out4
+  6 - No connect
+
+The moonlite focuser uses a DB9 connector with the following pin mapping:-
+
+  [TODO]
 
 # PI Setup
 
