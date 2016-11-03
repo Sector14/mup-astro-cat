@@ -5,6 +5,12 @@ and based upon the MIT licensed RPi_Hat template by xesscorp
 
   https://github.com/xesscorp/RPi_Hat_Template
 
+
+NOTE: Documentation within the docs/datasheets and docs/protocols
+directories are not covered by the following licenses. They remain the property
+of their respective owners and are provided for reference purposes
+only.
+
 **********************************************************************
 
 CERN Open Hardware Licence v1.2 
