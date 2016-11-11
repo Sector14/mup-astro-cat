@@ -232,6 +232,19 @@ choice as it allows an extended pin leg header to be mounted to the
 pi and then the hat mounted on top. This works out cheaper than the
 elevated sockets.
 
+Signal lines all need test point locations making available.
+
+Switch 4p4c and 6p6c connector layout to socket mounting (or both
+footprints?) to allow panel mount option and arbitrary connector type.
+
+USB ideally should also be panel mount but desoldering the PI's
+dual sockets is something I'd prefer to avoid.
+
+ST3232 should have been a soic version. DIP was used for prototyping.
+
+Add a via behind the regulator to connect ground planes for better
+thermal relief.
+
 
 # Reference
 
