@@ -137,7 +137,7 @@ Looking into 6p6c port on Pi Hat, locking tab on bottom, left to right:-
 The moonlite focuser uses a DB9 connector with the following pin mapping:-
 
   [TODO]
-
+ 
 # PI Setup
 
 To disable built in serial console, edit /boot/cmdline.txt and
@@ -186,6 +186,67 @@ Pass encoded with
   wpa_passphrase SSID passphrase
 
 
+# Manually Testing
+
+## Autostar
+
+minicom -D /dev/ttyAMA0 -b 9600 -8 -o
+
+Set HW and SW flow control off:
+  ctrl-A Z
+  o
+  Serial port
+  F
+  G
+
+Tx and Rx on head pin or the Autostar connector should now
+be decodable on a scope. Or you can sort circuit Tx and Rx
+on the RS232 auto star connector and should see any keypress
+echo'd back.
+
+## Focuser
+
+Using "gpio" on the command line of the Raspberry Pi.
+
+Write Pins 
+  Pin#  Func    BCM  GPIO
+  ------------------------
+  40  - /Enable 21   29
+  38  - Reset   20   28  
+  37  - SM0     26   25
+  36  - SM1     16   27
+  35  - DIR     19   24
+  33  - STEP    13   23
+
+
+Read Pins:
+  Pin# Func     BCM  GPIO
+  -----------------------
+  32 - /HOME    12   26
+  31 - /FAULT   6    22
+
+When using "gpio" you can specify GPIO (or BCM with -g switch) 
+pin numbers. Use "gpio readall" for a mapping table showing
+physical pin#, BCM and GPIO numbers.
+
+Configure write pins for OUT mode. Read pins will already be IN.
+
+  gpio mode 29 out
+ 
+Repeat for all write GPIO pins. Then write 0 to each pin
+
+  gpio write 28 0
+
+Reset the device
+ 
+  gpio write 28 1
+  gpio write 28 0
+
+Step CCW (dir is 0)
+
+  gpio write 23 1
+  gpio write 23 0
+ 
 # Gerber Export
 
 For Ordering PCBs from dirtypcbs.com
@@ -240,11 +301,10 @@ footprints?) to allow panel mount option and arbitrary connector type.
 USB ideally should also be panel mount but desoldering the PI's
 dual sockets is something I'd prefer to avoid.
 
-ST3232 should have been a soic version. DIP was used for prototyping.
+ST3232 switch to soic version.
 
 Add a via behind the regulator to connect ground planes for better
 thermal relief.
-
 
 # Reference
 
