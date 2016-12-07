@@ -1,7 +1,16 @@
 # MUP Astro Hat
 
 The "MUP Astro Hat" is licensed under the CERN Open Hardware License v1.2 
-and based upon the MIT licensed RPi_Hat template by xesscorp
+and based upon the MIT licensed RPi_Hat template by xesscorp. Software
+and Firmware are licensed under the GPL3.
+
+# Directories
+
+  * control_hat - Kicad project incl schematic/pcb layout for the MUP Astro Hat.
+  * docs - hardware/software project documentation and 3rd party datasheets
+  * gerber - Exported gerber files for re-ordering PCBs
+  * software - libindi drivers
+  * firmware - eeprom overlay source
 
 # Library Setup
 
@@ -213,8 +222,8 @@ Write Pins
   ------------------------
   40  - /Enable 21   29
   38  - Reset   20   28  
-  37  - SM0     26   25
-  36  - SM1     16   27
+  37  - SM1     26   25
+  36  - SM0     16   27
   35  - DIR     19   24
   33  - STEP    13   23
 
