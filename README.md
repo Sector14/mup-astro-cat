@@ -25,7 +25,7 @@ opening the schematic then you do not have the MUPS Kicad library available.
 Kicad will use a cached copy of the library so this step is optional, but 
 if you wish to make changes you should clone the repo:
 
-  <TODO>
+  https://bitbucket.org/BWGaryP/mup-kicad-library
 
 and add its location "Preferences/Component Libraries" as a user defined 
 search path in the "parts library editor".  Then close and re-open Eeschema
@@ -238,24 +238,58 @@ When using "gpio" you can specify GPIO (or BCM with -g switch)
 pin numbers. Use "gpio readall" for a mapping table showing
 physical pin#, BCM and GPIO numbers.
 
-Configure write pins for OUT mode. Read pins will already be IN.
+./setup_drv8805.sh
 
-  gpio mode 29 out
- 
-Repeat for all write GPIO pins. Then write 0 to each pin
+  #!/bin/sh
 
-  gpio write 28 0
+  # header pin num. 
+  nENABLE=29
+  RESET=28
+  SM1=25
+  SM0=27
+  DIR=24
+  STEP=23
 
-Reset the device
- 
-  gpio write 28 1
-  gpio write 28 0
+  gpio mode ${nENABLE} out
+  gpio mode ${RESET} out
+  gpio mode ${SM1} out
+  gpio mode ${SM0} out
+  gpio mode ${DIR} out
+  gpio mode ${STEP} out
 
-Step CCW (dir is 0)
+  # Enter Reset
+  gpio write ${RESET} 1
 
-  gpio write 23 1
-  gpio write 23 0
- 
+  # Set enabled, full step and CCW dir
+  gpio write ${nENABLE} 0
+  gpio write ${SM1} 0
+  gpio write ${SM0} 0
+  gpio write ${DIR} 0
+  gpio write ${STEP} 0
+
+  # Exit reset
+  gpio write ${nENABLE} 0
+
+  gpio readall
+
+Optionally change DIR or step type (SM0 & 1) by writing to pin DIR=24, SM0=27 and SM1=25 
+
+./step_drv8805.sh
+  #!/bin/sh
+
+  # header pin num. 
+  STEP=23
+  nHOME=26
+
+  echo Stepping once
+
+  gpio write ${STEP} 1
+  sleep 0.25
+  gpio write ${STEP} 0
+
+  echo /HOME is: 
+  gpio read ${nHOME}
+
 # Gerber Export
 
 For Ordering PCBs from dirtypcbs.com
@@ -304,8 +338,9 @@ elevated sockets.
 
 Signal lines all need test point locations making available.
 
-Switch 4p4c and 6p6c connector layout to socket mounting (or both
-footprints?) to allow panel mount option and arbitrary connector type.
+Switch 4p4c and 6p6c connector layout to socket mounting 
+to allow panel mount option or in the case of a direct wiring, a
+smaller connector area.
 
 USB ideally should also be panel mount but desoldering the PI's
 dual sockets is something I'd prefer to avoid.
