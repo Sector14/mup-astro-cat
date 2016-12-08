@@ -12,6 +12,33 @@ and Firmware are licensed under the GPL3.
   * software - libindi drivers
   * firmware - eeprom overlay source
 
+# Intended Purpose
+
+Use a raspberry pi and additional interface board to control the 
+following devices:
+
+  * SXVR-H9
+  * LodeStar
+  * Filter Wheel
+  * LX90 Handset
+  * Moonlite Focuser
+  * Illuminated Reticle (v2?)
+  * Temp Sensor
+
+The SXVR-H9, LodeStar (excl ST4 guide port) and Filter Wheel simply 
+connect as USB devices to the Pi. 
+
+The LX90 Handset uses a RS232 connection via RJ22 to the PI.
+
+Moonlite focuser controlled via GPIO to a unipolar stepper
+motor controller that will handle signal timing. Ensures any 
+jitter/pauses from pi due to non realtime OS won't impact
+motor control.
+
+ST4 port from APM is not implemented, it might be added in a future
+revision via i2c bus however as the LX90 supports pulse commands
+over serial, it may not be needed.
+
 # Library Setup
 
 In addition to the libraries, modules and models that ship with Kicad,
@@ -66,82 +93,54 @@ with {WALTER_KI3DMOD}/walter/ will then use the appropriate 3D model.
 The same will apply to {MUPS_KI3DMOD}/mups/ although at this time I've
 yet to create any custom 3D models and find it unlikely I will
 
-# Intended Purpose
-
-Use a raspberry pi and additional interface board to control the 
-following devices:
-
-  - SXVR-H9
-  - LodeStar
-  - Filter Wheel
-  - LX90 Handset
-  - Moonlite Focuser
-  - Illuminated Reticle (v2?)
-  - Temp Sensor
-
-The SXVR-H9, LodeStar (excl ST4 guide port) and Filter Wheel simply 
-connect as USB devices to the Pi. 
-
-The LX90 Handset uses a RS232 connection via RJ22 to the PI.
-
-Moonlite focuser controlled via GPIO to a unipolar stepper
-motor controller that will handle signal timing. Ensures any 
-jitter/pauses from pi due to non realtime OS won't impact
-motor control.
-
-ST4 port from APM is not implemented, it might be added in a future
-revision via i2c bus however as the LX90 supports pulse commands
-over serial, it may not be needed.
-
 # Pinouts
-
 
 ## Pi Hat RS232
 
 Looking into port, locking tab on bottom, left to right:-
 
-  1 - GND
-  2 - NC
-  3 - Tx
-  4 - Rx
+  1. GND
+  2. NC
+  3. Tx
+  4. Rx
 
 ## Autostar RS232 Port
 
 Looking into port with locking tab on bottom, left to right:- 
 
-  - GND
-  - NC
-  - Tx
-  - Rx
+  * GND
+  * NC
+  * Tx
+  * Rx
 
 Note: Tx and Rx should cross over in cable so Tx on PC is Rx on Autostar.
 
 ## Moonlite Focuser
 
-Model: LSG35012F76P
-Voltage: 12v
-Resistance/Phase: 65.0 Ohm
-Inductance H/Phase: 27.0
-Hold Current: 0.369A
-Total Input Watt: 4.5
-Min Holding Torque: 420 gf-cm (6.3 oz/in)
-Pull out Torque @ 175p/s: 151 gf-cm (2.1 oz-in)
-Detent Torque: 130 gf-cm (1.8 oz-in)
-Rotor inertia: 6.8 gf-cm^2 (0.372 oz-in^2)
-Weight: 82g (2.9oz)
-Length: 22mm (0.866in)
+    Model: LSG35012F76P
+    Voltage: 12v
+    Resistance/Phase: 65.0 Ohm
+    Inductance H/Phase: 27.0
+    Hold Current: 0.369A
+    Total Input Watt: 4.5
+    Min Holding Torque: 420 gf-cm (6.3 oz/in)
+    Pull out Torque @ 175p/s: 151 gf-cm (2.1 oz-in)
+    Detent Torque: 130 gf-cm (1.8 oz-in)
+    Rotor inertia: 6.8 gf-cm^2 (0.372 oz-in^2)
+    Weight: 82g (2.9oz)
+    Length: 22mm (0.866in)
 
 |Part No.     | Similar | Step Angle Degrees | Steps Per Revolution | Reduction | Nominal Voltage VDC | Min Holding Torque (oz-in)| Pull-out Torque @175p/s (oz-in) | Detent Torque (oz-in) | Rotor Inertia (oz-in) | Weight (oz) | Length (in) |
 |LSG35012F76P |3004-003 |0.100 |3600 |75 |12 |150 |101 |150.0 |0.0372 |8.6 |1.55
 
 Looking into 6p6c port on Pi Hat, locking tab on bottom, left to right:-
 
-  1 - 12v
-  2 - Out1
-  3 - Out2
-  4 - Out3
-  5 - Out4
-  6 - No connect
+  1. 12v
+  2. Out1
+  3. Out2
+  4. Out3
+  5. Out4
+  6. No connect
 
 The moonlite focuser uses a DB9 connector with the following pin mapping:-
 
@@ -160,53 +159,54 @@ and maps it back to the gpio pins we need. Without this the PI exposes
 a miniuart.
 
 Serial Port for autostar uses
-  Baud 9600
-  data: 8
-  stop: 1
-  parity: None
-  Order: LSB
+  * Baud: 9600
+  * Data: 8
+  * Stop: 1
+  * Parity: None
+  * Order: LSB
 
 You also need to disable the modem which tries to use uart0
 
-  systemctl disable hciuart
+    systemctl disable hciuart
 
 The hat should configure overlay, but cannot disable the modem.
 
-# Wifi
+## Wifi
 
 in /etc/network/interface
 
 
-  allow-hotplug wlan0
-  iface wlan0 inet dhcp
-     wpa-conf /etc/wpa_supplicant/wpa_supplicant.conf
+    allow-hotplug wlan0
+    iface wlan0 inet dhcp
+       wpa-conf /etc/wpa_supplicant/wpa_supplicant.conf
 
 In wpa_supplicant.conf
 
-  network={
-	ssid="WIFI"
-	psk=ENCODED_PASS
-	key_mgmt=WPA-PSK
-	pairwise=CCMP	
-  }
+    network={
+	  ssid="WIFI"
+	  psk=ENCODED_PASS
+	  key_mgmt=WPA-PSK
+	  pairwise=CCMP	
+    }
 
 Pass encoded with
 
-  wpa_passphrase SSID passphrase
+    wpa_passphrase SSID passphrase
 
 
 # Manually Testing
 
 ## Autostar
 
-minicom -D /dev/ttyAMA0 -b 9600 -8 -o
+    minicom -D /dev/ttyAMA0 -b 9600 -8 -o
 
 Set HW and SW flow control off:
-  ctrl-A Z
-  o
-  Serial port
-  F
-  G
+
+    ctrl-A Z
+    o
+    Serial port
+    F
+    G
 
 Tx and Rx on head pin or the Autostar connector should now
 be decodable on a scope. Or you can sort circuit Tx and Rx
@@ -217,22 +217,24 @@ echo'd back.
 
 Using "gpio" on the command line of the Raspberry Pi.
 
-Write Pins 
-  Pin#  Func    BCM  GPIO
-  ------------------------
-  40  - /Enable 21   29
-  38  - Reset   20   28  
-  37  - SM1     26   25
-  36  - SM0     16   27
-  35  - DIR     19   24
-  33  - STEP    13   23
+Write Pins:
+
+    Pin#  Func    BCM  GPIO
+    ------------------------
+    40  - /Enable 21   29
+    38  - Reset   20   28  
+    37  - SM1     26   25
+    36  - SM0     16   27
+    35  - DIR     19   24
+    33  - STEP    13   23
 
 
 Read Pins:
-  Pin# Func     BCM  GPIO
-  -----------------------
-  32 - /HOME    12   26
-  31 - /FAULT   6    22
+
+    Pin# Func     BCM  GPIO
+    -----------------------
+    32 - /HOME    12   26
+    31 - /FAULT   6    22
 
 When using "gpio" you can specify GPIO (or BCM with -g switch) 
 pin numbers. Use "gpio readall" for a mapping table showing
@@ -240,78 +242,86 @@ physical pin#, BCM and GPIO numbers.
 
 ./setup_drv8805.sh
 
-  #!/bin/sh
+```bash
+#!/bin/sh
 
-  # header pin num. 
-  nENABLE=29
-  RESET=28
-  SM1=25
-  SM0=27
-  DIR=24
-  STEP=23
+# header pin num. 
+nENABLE=29
+RESET=28
+SM1=25
+SM0=27
+DIR=24
+STEP=23
 
-  gpio mode ${nENABLE} out
-  gpio mode ${RESET} out
-  gpio mode ${SM1} out
-  gpio mode ${SM0} out
-  gpio mode ${DIR} out
-  gpio mode ${STEP} out
+gpio mode ${nENABLE} out
+gpio mode ${RESET} out
+gpio mode ${SM1} out
+gpio mode ${SM0} out
+gpio mode ${DIR} out
+gpio mode ${STEP} out
 
-  # Enter Reset
-  gpio write ${RESET} 1
+# Enter Reset
+gpio write ${RESET} 1
 
-  # Set enabled, full step and CCW dir
-  gpio write ${nENABLE} 0
-  gpio write ${SM1} 0
-  gpio write ${SM0} 0
-  gpio write ${DIR} 0
-  gpio write ${STEP} 0
+# Set enabled, full step and CCW dir
+gpio write ${nENABLE} 0
+gpio write ${SM1} 0
+gpio write ${SM0} 0
+gpio write ${DIR} 0
+gpio write ${STEP} 0
 
-  # Exit reset
-  gpio write ${nENABLE} 0
+# Exit reset
+gpio write ${nENABLE} 0
 
-  gpio readall
+gpio readall
+```
 
 Optionally change DIR or step type (SM0 & 1) by writing to pin DIR=24, SM0=27 and SM1=25 
 
+
 ./step_drv8805.sh
-  #!/bin/sh
 
-  # header pin num. 
-  STEP=23
-  nHOME=26
+```bash
+#!/bin/sh
 
-  echo Stepping once
+# header pin num. 
+STEP=23
+nHOME=26
 
-  gpio write ${STEP} 1
-  sleep 0.25
-  gpio write ${STEP} 0
+echo Stepping once
 
-  echo /HOME is: 
-  gpio read ${nHOME}
+gpio write ${STEP} 1
+sleep 0.25
+gpio write ${STEP} 0
+
+echo /HOME is: 
+gpio read ${nHOME}
+```
 
 # Gerber Export
 
 For Ordering PCBs from dirtypcbs.com
 
 For "plotting":-
-  - "Gerber" format is selected.
-  - Select Layers F.Cu, B.Cu, F.SilkS, B.Mask, F.Mask, Edge.Cuts
-  - Select Options:
-    - Plot footprint values
-    - Plot footprint references
-    - Exclude PCB edge layer from other layers
-  - Select Gerber Options:
-    - User Protel filename extensions
+
+  * "Gerber" format is selected.
+  * Select Layers F.Cu, B.Cu, F.SilkS, B.Mask, F.Mask, Edge.Cuts
+  * Select Options:
+   * Plot footprint values
+   * Plot footprint references
+   * Exclude PCB edge layer from other layers
+  * Select Gerber Options:
+   * User Protel filename extensions
 
 For Drill file:
-  - Units Inches
-  - Zeros Format, Suppress leading zeros
-  - Drill Map File Format (not used)
-  - Drill File Options:
-    - Minimal header
-    - Merge PTH and NPTH holes into one file
-  - Drill origin, Absolute
+
+  * Units Inches
+  * Zeros Format, Suppress leading zeros
+  * Drill Map File Format (not used)
+  * Drill File Options:
+   * Minimal header
+   * Merge PTH and NPTH holes into one file
+  * Drill origin, Absolute
 
 After export, rename the edge cuts "gm1" extension to "gml" prior
 to uploading zip to dirtypcbs.com.
@@ -352,13 +362,13 @@ thermal relief.
 
 # Reference
 
-http://www.beckwithelectronics.com/HURST/LSG35012F76P.htm
-http://www.weasner.com/etx/techtips/2007/aux-port.html
-http://www.weasner.com/etx/archive/mar12/autostar.html
-https://github.com/raspberrypi/hats
-https://github.com/raspberrypi/hats/blob/master/designguide.md
-https://github.com/xesscorp/RPi_Hat_Template
-http://www.briandorey.com/post/Raspberry-Pi-3-UART-Boot-Overlay-Part-Two
+  * http://www.beckwithelectronics.com/HURST/LSG35012F76P.htm
+  * http://www.weasner.com/etx/techtips/2007/aux-port.html
+  * http://www.weasner.com/etx/archive/mar12/autostar.html
+  * https://github.com/raspberrypi/hats
+  * https://github.com/raspberrypi/hats/blob/master/designguide.md
+  * https://github.com/xesscorp/RPi_Hat_Template
+  * http://www.briandorey.com/post/Raspberry-Pi-3-UART-Boot-Overlay-Part-Two
 
 # Copyright
 
