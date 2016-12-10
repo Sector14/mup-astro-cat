@@ -163,6 +163,9 @@ dual sockets is something I'd prefer to avoid.
 
 ST3232 switch to soic version.
 
+Add pin labels to silkscreen for temp port etc current broken square for
+ground is too hard to see once a pin header is soldered in place.
+
 Add a via behind the regulator to connect ground planes for better
 thermal relief.
 

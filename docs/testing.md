@@ -118,3 +118,21 @@ echo /HOME is:
 gpio read ${nHOME}
 ```
 
+## DS18B20
+
+The EEPROM should ensure the w1-gpio module is loaded and the
+device should show up on the w1 bus:-
+
+    cat /sys/bus/w1/devices/w1_bus_master1/w1_master_slave_count 
+    1
+
+    cat /sys/bus/w1/devices/w1_bus_master1/w1_master_slaves 
+    28-000002e13c1e
+
+To read the temperature, use the device id returned above
+
+    cat /sys/bus/w1/devices/28-000002e13c1e/w1_slave 
+    43 01 4b 46 7f ff 0d 10 bd : crc=bd YES
+    43 01 4b 46 7f ff 0d 10 bd t=20187
+
+The current temperature "t" is 20.187 C.
