@@ -1,14 +1,23 @@
-# MUP Astro Hat
+# MUP Astro CAT
 
-The "MUP Astro Hat" is licensed under the CERN Open Hardware License v1.2 
-and based upon the MIT licensed RPi_Hat template by xesscorp. Software
-is licensed under the GPL3. EEPROM firmware is licensed under the GPL2.
+The MUP Astro CAT is an auto GPIO configuring add-on board for the
+Raspberry PI 3 which provides additional hardware interfaces to 
+communicate and control a Meade Autostar, Moonlite focuser and
+temperature sensors.
 
-![MUP Astro Hat](docs/mup-astro-hat-on-pi.jpg)
+![MUP Astro CAT](https://bitbucket.org/BWGaryP/mup-astro-cat/raw/master/docs/mup_astro_cat_on_pi.jpg)
+
+CAT is either a recursive acronym for "CAT Attached on Top", or stands
+for "Cap Attachd On Top" (caps are not hats!) or more likley it refers
+to the Schmidt-Cassagrain (CAT for short) telescope this board will be
+attached to. Take your pick.
+
+The board follows most of the HAT specs but does not meet the size
+requirement or have the back powering protection "ideal" diode.
 
 # Directories
 
-  * control_hat - Kicad project incl schematic/pcb layout for the MUP Astro Hat. (CERN)
+  * control_cat - Kicad project incl schematic/pcb layout for the MUP Astro Cat. (CERN)
   * docs        - hardware/software project documentation and 3rd party datasheets
   * gerber      - Exported gerber files for re-ordering PCBs
   * software    - libindi drivers (GPL3)
@@ -138,9 +147,9 @@ to stick to the recommended layout and inductors based on the
 TI regulator used. Further experimentation will be done prior to
 revision 2 along with a change to SMD electrolytics and diodes.
 
-A surface mounting socket to mate the hat to the pi would be a better
+A surface mounting socket to mate the CAT to the pi would be a better
 choice as it allows an extended pin leg header to be mounted to the
-pi and then the hat mounted on top. This works out cheaper than the
+pi and then the CAT mounted on top. This works out cheaper than the
 elevated sockets.
 
 Signal lines all need test point locations making available.

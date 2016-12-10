@@ -25,10 +25,10 @@ product_id 0x0001
 product_ver 0x0002
 
 # ASCII vendor string  (max 255 characters)
-vendor "Gary Preston - mups.co.uk"
+vendor "Gary Preston - http://www.mups.co.uk"
 
 # ASCII product string (max 255 characters)
-product "MUP Astro Hat"
+product "MUP Astro CAT"
 
 
 ########################################################################

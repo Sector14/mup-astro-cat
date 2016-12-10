@@ -4,7 +4,7 @@
 / {
 	compatible = "brcm,bcm2708";
 
-   // pi3-disable-bt-overlay
+	// pi3-disable-bt-overlay
 	fragment@0 {
 		target = <&uart1>;
 		__overlay__ {
@@ -38,7 +38,7 @@
 		};
 	};
 
-   // w1-gpio-overlay
+	// w1-gpio-overlay
 	fragment@4 {
 		target-path = "/";
 		__overlay__ {
