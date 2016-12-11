@@ -98,11 +98,15 @@ MUPAstroCAT::~MUPAstroCAT()
 
 bool MUPAstroCAT::Connect()
 {
-    return false;
+    IDMessage(getDeviceName(), "Connected to device.");
+
+    return true;
 }
 
 bool MUPAstroCAT::Disconnect()
 {
+    IDMessage(getDeviceName(), "Disconnected from device.");
+
     return true;
 }
 

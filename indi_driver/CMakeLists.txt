@@ -20,11 +20,12 @@ set(BIN_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/bin")
 ######################################################################
   
 find_package(INDI REQUIRED)
-# TODO: WIRING PI
+find_package(WiringPi REQUIRED)
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${INDI_INCLUDE_DIR})
+include_directories(${WiringPi_INCLUDE_DIR})
 
 ######################################################################
 # MUP Astro CAT INDI Driver
@@ -36,7 +37,7 @@ set(MUPASTROCAT_SOURCES
 
 add_executable(indi_mupastrocat ${MUPASTROCAT_SOURCES})
 
-target_link_libraries(indi_mupastrocat ${INDI_DRIVER_LIBRARIES} ${M_LIB})
+target_link_libraries(indi_mupastrocat ${INDI_DRIVER_LIBRARIES} ${M_LIB} ${WiringPi_LIBRARY})
 
 install(TARGETS indi_mupastrocat RUNTIME DESTINATION bin)
 
