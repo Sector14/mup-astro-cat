@@ -7,20 +7,24 @@ temperature sensors.
 
 ![MUP Astro CAT](https://bitbucket.org/BWGaryP/mup-astro-cat/raw/master/docs/mup_astro_cat_on_pi.jpg)
 
+This repository contains both the hardware and software project files
+needed to build and use the MUP Astro CAT.
+
+Please refer to the additional documentation in the docs/ directory for
+information on port pinouts for cables, build/installation instructions
+and hardware testing notes.
+
 CAT is either a recursive acronym for "CAT Attached on Top", or stands
 for "Cap Attachd On Top" (caps are not hats!) or more likley it refers
 to the Schmidt-Cassagrain (CAT for short) telescope this board will be
 attached to. Take your pick.
-
-The board follows most of the HAT specs but does not meet the size
-requirement or have the back powering protection "ideal" diode.
 
 # Directories
 
   * control_cat - Kicad project incl schematic/pcb layout for the MUP Astro Cat. (CERN)
   * docs        - hardware/software project documentation and 3rd party datasheets
   * gerber      - Exported gerber files for re-ordering PCBs
-  * software    - libindi drivers (GPL3)
+  * indi_driver - libindi drivers (GPL3)
   * eeprom      - eeprom configuration and overlay source (GPL2)
 
 # Intended Purpose
@@ -171,12 +175,6 @@ thermal relief.
 
 HAT specs for back-powering via 5V GPIO header pin requires addition
 of an ideal 'safety' diode see [design guide](https://github.com/raspberrypi/hats/blob/master/designguide.md)
-
-# Additional Documentation
-
-Please refer to the additional documentation in the docs/ directory for
-including information on port pinouts for cables, PI OS configuration notes, 
-testing of the hardware and eeprom programming.
 
 # Reference
 

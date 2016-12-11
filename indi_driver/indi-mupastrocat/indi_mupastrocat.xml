@@ -1,0 +1,9 @@
+<!--?xml version="1.0" encoding="UTF-8"?-->
+<driverslist>
+<devgroup group="Focusers">
+   <device label="MUP Astro CAT">
+     <driver name="MUP Astro CAT">indi_mup_astro_cat</driver>
+     <version>1.0</version>
+   </device>
+</devgroup>
+</driverslist>
