@@ -39,7 +39,7 @@ repo
 
 Write Pins:
 
-    Pin#  Func    BCM  GPIO
+    Pin#  Func    BCM  WiringPi
     ------------------------
     40  - /Enable 21   29
     38  - Reset   20   28  
@@ -51,7 +51,7 @@ Write Pins:
 
 Read Pins:
 
-    Pin# Func     BCM  GPIO
+    Pin# Func     BCM  WiringPi
     -----------------------
     32 - /HOME    12   26
     31 - /FAULT   6    22
