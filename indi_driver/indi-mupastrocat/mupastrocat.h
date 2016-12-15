@@ -50,4 +50,5 @@ private:
     std::thread mFocusThread;
     
     void _ContinualFocusToTarget();
+    void _SetFocusDirection(FocusDirection dir);    
 };

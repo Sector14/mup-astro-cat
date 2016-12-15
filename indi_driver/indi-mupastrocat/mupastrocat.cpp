@@ -20,8 +20,9 @@
         - Switch to xml skeleton file to allow re-configuring driver pins and values 
         - Temperature reading/compensation/calibration
         - Full/Half/Wave step modes.
-        - Variable speed (see SetSpeed method note)
-        - move focuser fully in and "reset" to zero counter position.
+        - focuser thread and related properties/pin io can be isolated in a motor class.
+    Extra Notes:
+        - Expects user to move drawtube fully in and "reset" to reach initial zero state
         - See: http://focuser.com/focusmax.php
             - 1" motion = 6135 full steps (should be configurable param in case different motors used)
             - 0.95" draw tube range is 0 to 5828, set max travel somewhere around 5300 to be safe
@@ -36,11 +37,13 @@
         
 */
 
+#include <algorithm>
+#include <cassert>
 #include <chrono>
+#include <cinttypes>
+#include <cmath>
 #include <memory>
 #include <thread>
-#include <cinttypes>
-#include <cassert>
 
 #include <wiringPi.h>
 
@@ -51,6 +54,23 @@
 //////////////////////////////////////////////////////////////////////
 
 const char* DEFAULT_DEVICE_NAME = "MUP Astro CAT";
+
+// Minimum pulse is 1.9uS rounding up to 2 to allow a max step frequency
+// of 250kHz although this is just a minimum. Pre-emption and thread 
+// sleep will cause orders of magnitude higher delays. 
+std::chrono::microseconds MIN_STEP_PULSE_HOLD {2};
+std::chrono::microseconds MIN_SETUP_DELAY {1};
+
+// Pi BCM Input Pin numbers
+const int OUTPUT_PIN_nENABLE = 21;
+const int OUTPUT_PIN_RESET = 20; 
+const int OUTPUT_PIN_SM0 = 16;
+const int OUTPUT_PIN_SM1 = 26;
+const int OUTPUT_PIN_DIR = 19;
+const int OUTPUT_PIN_STEP = 23;
+
+const int INPUT_PIN_nHOME = 12;
+const int INPUT_PIN_nFAULT = 6;
 
 //////////////////////////////////////////////////////////////////////
 // Driver Instance
@@ -107,8 +127,22 @@ MUPAstroCAT::MUPAstroCAT()
 {
     wiringPiSetupGpio();
 
-    // TODO: FOCUSER_CAN_REL_MOVE | FOCUSER_HAS_VARIABLE_SPEED
-    SetFocuserCapability( FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_ABORT );
+    // Hat EEPROM should have configured i/o pins but just in case
+    pinMode(OUTPUT_PIN_nENABLE, OUTPUT);
+    pinMode(OUTPUT_PIN_RESET, OUTPUT); 
+    pinMode(OUTPUT_PIN_SM0, OUTPUT);
+    pinMode(OUTPUT_PIN_SM1, OUTPUT);
+    pinMode(OUTPUT_PIN_DIR, OUTPUT);
+    pinMode(OUTPUT_PIN_STEP, OUTPUT);
+    
+    pinMode(INPUT_PIN_nHOME, INPUT);
+    pinMode(INPUT_PIN_nFAULT, INPUT);
+
+    // Keep disabled until initial connection
+    digitalWrite(OUTPUT_PIN_nENABLE, 1);
+
+    SetFocuserCapability( FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | 
+                          FOCUSER_CAN_ABORT | FOCUSER_HAS_VARIABLE_SPEED );
 }
 
 MUPAstroCAT::~MUPAstroCAT()
@@ -132,6 +166,19 @@ bool MUPAstroCAT::Connect()
 
     if (isConnected())
         return true;
+
+    digitalWrite(OUTPUT_PIN_nENABLE, 1);
+
+    // Reset (min pulse = 20uS)
+    digitalWrite(OUTPUT_PIN_RESET, 1);
+    delayMicroseconds(MIN_STEP_PULSE_HOLD.count());
+    digitalWrite(OUTPUT_PIN_RESET, 0);
+
+    // Full step mode
+    digitalWrite(OUTPUT_PIN_SM0, 0);
+    digitalWrite(OUTPUT_PIN_SM1, 0);
+    // Counter clockwise
+    _SetFocusDirection(FOCUS_OUTWARD);
 
     IDMessage(getDeviceName(), "Connected to device.");
 
@@ -161,6 +208,9 @@ bool MUPAstroCAT::Disconnect()
     if(mFocusThread.joinable()) 
         mFocusThread.join();
 
+    // Disable driver chip
+    digitalWrite(OUTPUT_PIN_nENABLE, 1);
+
     return true;
 }
 
@@ -177,25 +227,31 @@ bool MUPAstroCAT::initProperties()
     IUFillText(&PortT[0], "PORT", "Port", "RaspberryPI GPIO");
     IUFillTextVector(&PortTP, PortT, 1, getDeviceName(), "DEVICE_PORT", "Ports", OPTIONS_TAB, IP_RO, 0, IPS_IDLE);
 
-    // TODO: Extra properties for backlash, current temp, temp compensation etc
-    FocusSpeedN[0].min = 1;
-    FocusSpeedN[0].max = 1;
-    FocusSpeedN[0].value = 1;
+    // Change Focus speed label
+    IUFillNumberVector(&FocusSpeedNP,FocusSpeedN,1,getDeviceName(),"FOCUS_SPEED","Speed (steps/second)", MAIN_CONTROL_TAB, IP_RW, 60, IPS_OK);
 
+    // TODO: Extra properties for backlash, current temp, temp compensation, fault and home lights etc
+
+    // Arbitrary speed range until motor testing complete.
+    FocusSpeedN[0].min = 1;
+    FocusSpeedN[0].max = 250;
+    FocusSpeedN[0].value = 250;
+    FocusSpeedN[0].step = 50;
+    
     // TODO: These should be configurable but it depends on the draw tube in use
-    //       6135 steps per 1" of travel.       
+    //       6135 steps per 1" of travel. Need to add a dropdown for draw tube selection then recalc.
 
     // Relative Movement limits
     FocusRelPosN[0].min = 0.0;
-    FocusRelPosN[0].max = 30000.0;
+    FocusRelPosN[0].max = 5328.0;
     FocusRelPosN[0].value = 0;
-    FocusRelPosN[0].step = 1000;
+    FocusRelPosN[0].step = 100;
 
     // Absolute Movement limits
     FocusAbsPosN[0].min = 0.0;
-    FocusAbsPosN[0].max = 60000.0;
+    FocusAbsPosN[0].max = 5328.0;
     FocusAbsPosN[0].value = 0;
-    FocusAbsPosN[0].step = 1000;
+    FocusAbsPosN[0].step = 100;
  
     return true;
 }
@@ -233,29 +289,24 @@ bool MUPAstroCAT::ISNewSwitch (const char *dev, const char *name, ISState *state
 
 bool MUPAstroCAT::SetFocuserSpeed(int speed)
 {
-    INDI_UNUSED(speed);
-
-    // Official moonlite supports speeds of 2,4,8,10 and 20 which
-    // "correspond to a stepping delay of 250, 125, 63, 32 and 16
-    //  steps per second respectively."
-    return false;
+    // Only need to verify focuser speed is within limits, FocusSpeedN value will be set by caller.
+    return (speed >= FocusSpeedN[0].min && speed <= FocusSpeedN[0].max);
 }
 
 IPState MUPAstroCAT::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
 {
-    INDI_UNUSED(dir);
-    INDI_UNUSED(speed);
-    INDI_UNUSED(duration);
+    // duration is in milliseconds, speed is steps per second.
+    auto stepsPerMillisecond = speed / 1000.0f;
+    uint32_t ticks = floor(stepsPerMillisecond * duration + 0.5f);
 
-    // TODO: Convert speed/duration to a relative step move based on current step frequency
+    IDMessage(getDeviceName(), "Relative move speed: %i duration: %" PRIu16 "steps/ms: %g ticks: %" PRIu32 ,
+              speed, duration, stepsPerMillisecond, ticks);
 
-    return IPS_ALERT;
+    return MoveRelFocuser(dir, ticks);
 }
 
 IPState MUPAstroCAT::MoveAbsFocuser(uint32_t ticks)
-{       
-    // TODO: Sanity tests
-
+{
     // If there is any focus to target occuring in the focuser thread it needs to be
     // aborted as target position cannot be changed outside the focus lock. If 
     // there's not, the abort request will have no effect.
@@ -263,7 +314,9 @@ IPState MUPAstroCAT::MoveAbsFocuser(uint32_t ticks)
 
     {
         std::lock_guard<std::mutex> lock(mFocusLock);
-        mFocusTargetPosition = ticks;
+
+        mFocusTargetPosition = std::max( std::min(ticks,  static_cast<uint32_t>(FocusAbsPosN[0].max)),
+                                         static_cast<uint32_t>(FocusAbsPosN[0].min) );
 
         mFocusAbort = false;
 
@@ -279,14 +332,36 @@ IPState MUPAstroCAT::MoveAbsFocuser(uint32_t ticks)
 
 IPState MUPAstroCAT::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
-    INDI_UNUSED(dir);
-    INDI_UNUSED(ticks);
+    AbortFocuser();
 
-    // TODO: Do an abs move based on current position
-    // Will require a lock unless current pos is made atomic. 
-    // lock/determine abs, unlock, do abs move?
+    {
+        std::lock_guard<std::mutex> lock(mFocusLock);
 
-    return IPS_ALERT;
+        if (dir == FOCUS_INWARD)
+        {
+            if (mFocusTargetPosition >= ticks && mFocusTargetPosition - ticks >= FocusRelPosN[0].min)
+                mFocusTargetPosition -= ticks;
+            else
+                mFocusTargetPosition = FocusRelPosN[0].min;        
+        }
+        else 
+        {
+            if (mFocusTargetPosition + ticks <= FocusRelPosN[0].max)
+                mFocusTargetPosition += ticks;
+            else
+                mFocusTargetPosition = FocusRelPosN[0].max;
+        }
+            
+        mFocusAbort = false;
+
+        // Already there?
+        if (mFocusTargetPosition == mFocusCurrentPosition)
+            return IPS_OK;
+    }
+
+    mCheckFocusCondition.notify_one();
+
+    return IPS_BUSY;
 }
 
 bool MUPAstroCAT::AbortFocuser()
@@ -312,30 +387,48 @@ void MUPAstroCAT::_ContinualFocusToTarget()
                 return mFocusCurrentPosition != mFocusTargetPosition || mStopFocusThread;
              });
         
+        FocusDirection focusDir = mFocusTargetPosition > mFocusCurrentPosition ? FOCUS_OUTWARD : FOCUS_INWARD;
+        _SetFocusDirection(focusDir);
+
         while (mFocusCurrentPosition != mFocusTargetPosition && !mStopFocusThread && !mFocusAbort)
         {
-            // simulate motion
-            if (mFocusCurrentPosition < mFocusTargetPosition)
-                mFocusCurrentPosition++;
-            else if (mFocusCurrentPosition > mFocusTargetPosition)
-                mFocusCurrentPosition--;            
+            // delayMicroseconds should busyloop for <= 100uS            
+            digitalWrite(OUTPUT_PIN_STEP, 1);
+            delayMicroseconds(MIN_STEP_PULSE_HOLD.count());
+            digitalWrite(OUTPUT_PIN_STEP, 0);
 
-            // TODO: Switch to a verbose debug log message
-            IDMessage(getDeviceName(), "Moved to current pos: %" PRIu32 " target: %" PRIu32, mFocusCurrentPosition, mFocusTargetPosition);
-
+            focusDir == FOCUS_OUTWARD ? mFocusCurrentPosition++ : mFocusCurrentPosition--;
             FocusAbsPosN[0].value = mFocusCurrentPosition;
             IDSetNumber(&FocusAbsPosNP, nullptr);
 
-            std::this_thread::sleep_for(std::chrono::seconds(1));
+            //IDMessage(getDeviceName(), "Moved to current pos: %" PRIu32 " target: %" PRIu32, mFocusCurrentPosition, mFocusTargetPosition);
+
+            // Rough delay based on target steps per second.
+            std::this_thread::sleep_for(std::chrono::microseconds(1000000) / FocusSpeedN[0].value);
         }
         
         FocusAbsPosN[0].value = mFocusCurrentPosition;
         FocusAbsPosNP.s = IPS_OK;
+        FocusRelPosNP.s = IPS_OK;
+        FocusTimerNP.s = IPS_OK;
         IDSetNumber(&FocusAbsPosNP, "Focuser stopped at position %" PRIu32, mFocusCurrentPosition);
+        IDSetNumber(&FocusRelPosNP, nullptr);
+        IDSetNumber(&FocusTimerNP, nullptr);
 
         // May have exited loop early due to an abort focus. Ensure target equals current to avoid 
         // a future spurious wakeup being seen as anything other than spurious.
+        // CODEREVIEW: Would be better if thread treated mFocusTargetPosition as read only and
+        //             instead used mFocusAbort in the condition var spurious wakeup test. However,
+        //             would that mean (even though it's atomic) mFocusAbort can only be changed within
+        //             the mFocusLock mutex? 
         mFocusTargetPosition = mFocusCurrentPosition;
     }
 }
 
+void MUPAstroCAT::_SetFocusDirection(FocusDirection dir)
+{
+    // TODO: If backlash becomes an issue, track last movement direction
+    //       and if direction change requested account for backlash by stepping X times.
+    digitalWrite(OUTPUT_PIN_DIR, dir == FOCUS_OUTWARD ? 0 : 1);
+    delayMicroseconds(MIN_SETUP_DELAY.count());
+}
