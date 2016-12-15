@@ -14,10 +14,10 @@ Please refer to the additional documentation in the docs/ directory for
 information on port pinouts for cables, build/installation instructions
 and hardware testing notes.
 
-CAT is either a recursive acronym for "CAT Attached on Top", or stands
-for "Cap Attachd On Top" (caps are not hats!) or more likley it refers
-to the Schmidt-Cassagrain (CAT for short) telescope this board will be
-attached to. Take your pick.
+CAT refers to the Schmidt-Cassagrain telescope (CAT for short) this board will
+be attached to. After naming it CAT I considered the recursive "CAP" which
+would stand for "CAP Attached on Pi" since this project doesn't quite meet
+the "Hat" spec, a cap is not a hat! but that means renaming things so CAT it is.
 
 # Directories
 

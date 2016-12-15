@@ -37,6 +37,12 @@ public:
     
     bool AbortFocuser() override;
 
+    void OnPinNotFaultChanged(void);
+private:
+    ILight mFaultLight;
+    ILightVectorProperty  mStatusLightProperty;
+
+
 private:
     std::mutex mFocusLock; // Used for: 
                            //  1 - mCheckFocusCondition

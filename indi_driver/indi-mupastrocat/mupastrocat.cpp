@@ -79,6 +79,15 @@ const int INPUT_PIN_nFAULT = 6;
 std::unique_ptr<MUPAstroCAT> sgMupAstroCAT(new MUPAstroCAT());
 
 //////////////////////////////////////////////////////////////////////
+// Interrupt Service Routines
+//////////////////////////////////////////////////////////////////////
+
+void nFaultInterrupt(void)
+{
+    sgMupAstroCAT->OnPinNotFaultChanged();
+}
+
+//////////////////////////////////////////////////////////////////////
 // INDI Framework Callbacks
 //////////////////////////////////////////////////////////////////////
 
@@ -140,6 +149,12 @@ MUPAstroCAT::MUPAstroCAT()
 
     // Keep disabled until initial connection
     digitalWrite(OUTPUT_PIN_nENABLE, 1);
+
+    // Setup ISR for monitoring nFault pin
+    if (wiringPiISR(INPUT_PIN_nFAULT, INT_EDGE_BOTH, &nFaultInterrupt) < 0)
+    {
+        // TODO: Log non-fatal error.
+    }
 
     SetFocuserCapability( FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | 
                           FOCUSER_CAN_ABORT | FOCUSER_HAS_VARIABLE_SPEED );
@@ -232,6 +247,9 @@ bool MUPAstroCAT::initProperties()
 
     // TODO: Extra properties for backlash, current temp, temp compensation, fault and home lights etc
 
+    IUFillLight(&mFaultLight, "FOCUSER_FAULT_VALUE", "Motor Fault", IPS_IDLE);
+    IUFillLightVector(&mStatusLightProperty, &mFaultLight, 1, getDeviceName(), "FOCUSER_STATUS", "Status", MAIN_CONTROL_TAB, IPS_IDLE);
+
     // Arbitrary speed range until motor testing complete.
     FocusSpeedN[0].min = 1;
     FocusSpeedN[0].max = 250;
@@ -260,7 +278,14 @@ bool MUPAstroCAT::updateProperties()
 {
     INDI::Focuser::updateProperties();
 
-    // TODO: delete/define properties that should only be seen in connect/disconnected states
+    if (isConnected())
+    {
+        defineLight(&mStatusLightProperty);
+    }
+    else
+    {
+        deleteProperty(mStatusLightProperty.name);
+    }
 
     return true;
 }
@@ -373,6 +398,21 @@ bool MUPAstroCAT::AbortFocuser()
 }
 
 //////////////////////////////////////////////////////////////////////
+// Interrupt Handlers
+//////////////////////////////////////////////////////////////////////
+
+void MUPAstroCAT::OnPinNotFaultChanged(void)
+{
+    const bool fault = digitalRead(INPUT_PIN_nFAULT) == 0;
+
+    if (fault != (mFaultLight.s == IPS_ALERT))
+    {
+        mFaultLight.s = fault ? IPS_ALERT : IPS_IDLE;
+        IDSetLight(&mStatusLightProperty, nullptr);
+    }
+}
+
+//////////////////////////////////////////////////////////////////////
 // Focuser Interface
 //////////////////////////////////////////////////////////////////////
 
@@ -400,8 +440,6 @@ void MUPAstroCAT::_ContinualFocusToTarget()
             focusDir == FOCUS_OUTWARD ? mFocusCurrentPosition++ : mFocusCurrentPosition--;
             FocusAbsPosN[0].value = mFocusCurrentPosition;
             IDSetNumber(&FocusAbsPosNP, nullptr);
-
-            //IDMessage(getDeviceName(), "Moved to current pos: %" PRIu32 " target: %" PRIu32, mFocusCurrentPosition, mFocusTargetPosition);
 
             // Rough delay based on target steps per second.
             std::this_thread::sleep_for(std::chrono::microseconds(1000000) / FocusSpeedN[0].value);

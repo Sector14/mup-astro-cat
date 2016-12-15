@@ -74,7 +74,8 @@ If you're curious about how overlays work documentation can be found at:
 
   * http://www.raspberrypi.org/documentation/configuration/device-tree.md
   * https://github.com/raspberrypi/firmware/blob/master/boot/overlays/README
-  
+  * https://www.kernel.org/doc/Documentation/devicetree/usage-model.txt
+ 
 Note: the overlay is based on pi3-\*-bt-overlay.dts and w1-gpio-overlay.dts from 
 
    https://github.com/raspberrypi/linux/tree/rpi-4.4.y/arch/arm/boot/dts/overlays
