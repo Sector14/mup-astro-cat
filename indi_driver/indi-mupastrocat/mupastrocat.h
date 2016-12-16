@@ -38,10 +38,10 @@ public:
     bool AbortFocuser() override;
 
     void OnPinNotFaultChanged(void);
+
 private:
     ILight mFaultLight;
     ILightVectorProperty  mStatusLightProperty;
-
 
 private:
     std::mutex mFocusLock; // Used for: 
@@ -54,7 +54,8 @@ private:
     std::atomic<bool> mFocusAbort{ false };
     std::atomic<bool> mStopFocusThread{ false };
     std::thread mFocusThread;
-    
+
+    bool _Disconnect();        
     void _ContinualFocusToTarget();
     void _SetFocusDirection(FocusDirection dir);    
 };

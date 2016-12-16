@@ -162,13 +162,7 @@ MUPAstroCAT::MUPAstroCAT()
 
 MUPAstroCAT::~MUPAstroCAT()
 {
-    {
-        std::lock_guard<std::mutex> lock_guard(mFocusLock);
-        mStopFocusThread = true;
-    }
-    mCheckFocusCondition.notify_all();
-    if(mFocusThread.joinable()) 
-        mFocusThread.join();
+    _Disconnect();    
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -211,22 +205,9 @@ bool MUPAstroCAT::Disconnect()
     if (!isConnected())
         return true;
 
-    IDMessage(getDeviceName(), "Disconnected from device.");
-
-    // Notify focus thread to exit.
-    {
-        std::lock_guard<std::mutex> lock(mFocusLock);
-        mStopFocusThread = true;
-    }
-    mCheckFocusCondition.notify_one();
-
-    if(mFocusThread.joinable()) 
-        mFocusThread.join();
-
-    // Disable driver chip
-    digitalWrite(OUTPUT_PIN_nENABLE, 1);
-
-    return true;
+    IDMessage(getDeviceName(), "Disconnecting from device.");
+    
+    return _Disconnect();
 }
 
 const char * MUPAstroCAT::getDefaultName()
@@ -401,7 +382,7 @@ bool MUPAstroCAT::AbortFocuser()
 // Interrupt Handlers
 //////////////////////////////////////////////////////////////////////
 
-void MUPAstroCAT::OnPinNotFaultChanged(void)
+void MUPAstroCAT::OnPinNotFaultChanged()
 {
     const bool fault = digitalRead(INPUT_PIN_nFAULT) == 0;
 
@@ -413,8 +394,28 @@ void MUPAstroCAT::OnPinNotFaultChanged(void)
 }
 
 //////////////////////////////////////////////////////////////////////
-// Focuser Interface
+// Focuser Private
 //////////////////////////////////////////////////////////////////////
+
+bool MUPAstroCAT::_Disconnect()
+{
+    AbortFocuser();
+
+    // Notify focus thread to exit.
+    {
+        std::lock_guard<std::mutex> lock(mFocusLock);
+        mStopFocusThread = true;
+    }
+    mCheckFocusCondition.notify_one();
+
+    if(mFocusThread.joinable()) 
+        mFocusThread.join();
+
+    // Disable driver chip
+    digitalWrite(OUTPUT_PIN_nENABLE, 1);
+
+    return true;
+}
 
 void MUPAstroCAT::_ContinualFocusToTarget()
 {
