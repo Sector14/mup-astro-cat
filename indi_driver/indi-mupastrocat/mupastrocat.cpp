@@ -58,8 +58,8 @@ const char* DEFAULT_DEVICE_NAME = "MUP Astro CAT";
 // Minimum pulse is 1.9uS rounding up to 2 to allow a max step frequency
 // of 250kHz although this is just a minimum. Pre-emption and thread 
 // sleep will cause orders of magnitude higher delays. 
-std::chrono::microseconds MIN_STEP_PULSE_HOLD {2};
-std::chrono::microseconds MIN_SETUP_DELAY {1};
+const std::chrono::microseconds MIN_STEP_PULSE_HOLD {2};
+const std::chrono::microseconds MIN_SETUP_DELAY {1};
 
 // Pi BCM Input Pin numbers
 const int OUTPUT_PIN_nENABLE = 21;
@@ -421,6 +421,7 @@ void MUPAstroCAT::_ContinualFocusToTarget()
 {
     while( ! mStopFocusThread )
     {
+        // CODEREVIEW: There's a lot of work done over potentially several seconds with the lock in place.
         std::unique_lock<std::mutex> lock(mFocusLock);
 
         // Avoid spurious wakeup
