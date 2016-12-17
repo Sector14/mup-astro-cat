@@ -34,6 +34,7 @@ include_directories(${WiringPi_INCLUDE_DIR})
 
 set(MUPASTROCAT_SOURCES
 	${CMAKE_CURRENT_SOURCE_DIR}/indi-mupastrocat/mupastrocat.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/indi-mupastrocat/motorcontroller.cpp
 )
 
 add_executable(indi_mupastrocat ${MUPASTROCAT_SOURCES})

@@ -19,27 +19,17 @@
     Future TODO:- 
         - Switch to xml skeleton file to allow re-configuring driver pins and values 
         - Temperature reading/compensation/calibration
-        - Full/Half/Wave step modes.
         - focuser thread and related properties/pin io can be isolated in a motor class.
     Extra Notes:
         - Expects user to move drawtube fully in and "reset" to reach initial zero state
         - See: http://focuser.com/focusmax.php
             - 1" motion = 6135 full steps (should be configurable param in case different motors used)
             - 0.95" draw tube range is 0 to 5828, set max travel somewhere around 5300 to be safe
-            - Mid range start point should be ~2900
-        - Max Step Frequency: 250KHz
-        - Min High/Low Pulse duration 1.9uS
-        - Reset pulse width: 20uS
-        - DIR/SM0/SM1 setup time 1uS
-        - NOTE: In half and wave modes, after an initial reset it appears to take two STEP calls
-                to move out of the home position on the first cycle but only one step call for
-                subsequent cycles.
-        
+            - Mid range start point should be ~2900        
 */
 
 #include <algorithm>
 #include <cassert>
-#include <chrono>
 #include <cinttypes>
 #include <cmath>
 #include <memory>
@@ -55,21 +45,7 @@
 
 const char* DEFAULT_DEVICE_NAME = "MUP Astro CAT";
 
-// Minimum pulse is 1.9uS rounding up to 2 to allow a max step frequency
-// of 250kHz although this is just a minimum. Pre-emption and thread 
-// sleep will cause orders of magnitude higher delays. 
-const std::chrono::microseconds MIN_STEP_PULSE_HOLD {2};
-const std::chrono::microseconds MIN_SETUP_DELAY {1};
-
-// Pi BCM Input Pin numbers
-const int OUTPUT_PIN_nENABLE = 21;
-const int OUTPUT_PIN_RESET = 20; 
-const int OUTPUT_PIN_SM0 = 16;
-const int OUTPUT_PIN_SM1 = 26;
-const int OUTPUT_PIN_DIR = 19;
-const int OUTPUT_PIN_STEP = 23;
-
-const int INPUT_PIN_nHOME = 12;
+// TODO: Pin should be moved to motor controller along with handler
 const int INPUT_PIN_nFAULT = 6;
 
 //////////////////////////////////////////////////////////////////////
@@ -77,15 +53,6 @@ const int INPUT_PIN_nFAULT = 6;
 //////////////////////////////////////////////////////////////////////
 
 std::unique_ptr<MUPAstroCAT> sgMupAstroCAT(new MUPAstroCAT());
-
-//////////////////////////////////////////////////////////////////////
-// Interrupt Service Routines
-//////////////////////////////////////////////////////////////////////
-
-void nFaultInterrupt(void)
-{
-    sgMupAstroCAT->OnPinNotFaultChanged();
-}
 
 //////////////////////////////////////////////////////////////////////
 // INDI Framework Callbacks
@@ -134,24 +101,11 @@ void ISSnoopDevice (XMLEle *root)
 
 MUPAstroCAT::MUPAstroCAT()
 {
-    wiringPiSetupGpio();
-
-    // Hat EEPROM should have configured i/o pins but just in case
-    pinMode(OUTPUT_PIN_nENABLE, OUTPUT);
-    pinMode(OUTPUT_PIN_RESET, OUTPUT); 
-    pinMode(OUTPUT_PIN_SM0, OUTPUT);
-    pinMode(OUTPUT_PIN_SM1, OUTPUT);
-    pinMode(OUTPUT_PIN_DIR, OUTPUT);
-    pinMode(OUTPUT_PIN_STEP, OUTPUT);
-    
-    pinMode(INPUT_PIN_nHOME, INPUT);
-    pinMode(INPUT_PIN_nFAULT, INPUT);
-
-    // Keep disabled until initial connection
-    digitalWrite(OUTPUT_PIN_nENABLE, 1);
-
+    // TODO: This is really something the motor controller needs
+    //       as it handles wiring pi.
     // Setup ISR for monitoring nFault pin
-    if (wiringPiISR(INPUT_PIN_nFAULT, INT_EDGE_BOTH, &nFaultInterrupt) < 0)
+    if (wiringPiISR(INPUT_PIN_nFAULT, INT_EDGE_BOTH,
+                    []() { sgMupAstroCAT->OnPinNotFaultChanged(); }) < 0) 
     {
         // TODO: Log non-fatal error.
     }
@@ -162,7 +116,7 @@ MUPAstroCAT::MUPAstroCAT()
 
 MUPAstroCAT::~MUPAstroCAT()
 {
-    _Disconnect();    
+    _Disconnect();
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -176,18 +130,7 @@ bool MUPAstroCAT::Connect()
     if (isConnected())
         return true;
 
-    digitalWrite(OUTPUT_PIN_nENABLE, 1);
-
-    // Reset (min pulse = 20uS)
-    digitalWrite(OUTPUT_PIN_RESET, 1);
-    delayMicroseconds(MIN_STEP_PULSE_HOLD.count());
-    digitalWrite(OUTPUT_PIN_RESET, 0);
-
-    // Full step mode
-    digitalWrite(OUTPUT_PIN_SM0, 0);
-    digitalWrite(OUTPUT_PIN_SM1, 0);
-    // Counter clockwise
-    _SetFocusDirection(FOCUS_OUTWARD);
+    mMotorController.Enable();
 
     IDMessage(getDeviceName(), "Connected to device.");
 
@@ -204,10 +147,10 @@ bool MUPAstroCAT::Disconnect()
 
     if (!isConnected())
         return true;
-
+    
     IDMessage(getDeviceName(), "Disconnecting from device.");
     
-    return _Disconnect();
+    return _Disconnect();;
 }
 
 const char * MUPAstroCAT::getDefaultName()
@@ -313,17 +256,15 @@ IPState MUPAstroCAT::MoveFocuser(FocusDirection dir, int speed, uint16_t duratio
 
 IPState MUPAstroCAT::MoveAbsFocuser(uint32_t ticks)
 {
-    // If there is any focus to target occuring in the focuser thread it needs to be
-    // aborted as target position cannot be changed outside the focus lock. If 
-    // there's not, the abort request will have no effect.
     AbortFocuser();
 
     {
         std::lock_guard<std::mutex> lock(mFocusLock);
 
-        mFocusTargetPosition = std::max( std::min(ticks,  static_cast<uint32_t>(FocusAbsPosN[0].max)),
+        // TODO: Min/max position needs to be set on motorcontroller
+        mFocusTargetPosition = std::max( std::min(ticks,static_cast<uint32_t>(FocusAbsPosN[0].max)),
                                          static_cast<uint32_t>(FocusAbsPosN[0].min) );
-
+        
         mFocusAbort = false;
 
         // Already there?
@@ -371,8 +312,7 @@ IPState MUPAstroCAT::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 }
 
 bool MUPAstroCAT::AbortFocuser()
-{
-    // Indicate to focus thread to abort if it's currently moving to target
+{    
     mFocusAbort = true;
 
     return true;
@@ -384,6 +324,9 @@ bool MUPAstroCAT::AbortFocuser()
 
 void MUPAstroCAT::OnPinNotFaultChanged()
 {
+    // CODEREVIEW: fault pin really belongs on the motor controller, however
+    //  it needs to notify this class in order to set the indi status. 
+    //  Need event/callback.
     const bool fault = digitalRead(INPUT_PIN_nFAULT) == 0;
 
     if (fault != (mFaultLight.s == IPS_ALERT))
@@ -397,26 +340,7 @@ void MUPAstroCAT::OnPinNotFaultChanged()
 // Focuser Private
 //////////////////////////////////////////////////////////////////////
 
-bool MUPAstroCAT::_Disconnect()
-{
-    AbortFocuser();
-
-    // Notify focus thread to exit.
-    {
-        std::lock_guard<std::mutex> lock(mFocusLock);
-        mStopFocusThread = true;
-    }
-    mCheckFocusCondition.notify_one();
-
-    if(mFocusThread.joinable()) 
-        mFocusThread.join();
-
-    // Disable driver chip
-    digitalWrite(OUTPUT_PIN_nENABLE, 1);
-
-    return true;
-}
-
+// TODO: Feedback to astrocat when positions changed.
 void MUPAstroCAT::_ContinualFocusToTarget()
 {
     while( ! mStopFocusThread )
@@ -430,14 +354,18 @@ void MUPAstroCAT::_ContinualFocusToTarget()
              });
         
         FocusDirection focusDir = mFocusTargetPosition > mFocusCurrentPosition ? FOCUS_OUTWARD : FOCUS_INWARD;
-        _SetFocusDirection(focusDir);
+        
+        mMotorController.SetFocusDirection(focusDir == FOCUS_OUTWARD ? MotorController::FocusDirection::CLOCKWISE : 
+                                                                       MotorController::FocusDirection::ANTI_CLOCKWISE);
 
+        // TODO: Instead of single stepping and switching to a StepMotor(numSteps) call
+        //       without blocking, would need thread moving into controller. In turn that means moving
+        //       current and target pos tracking which in turn means moving the movement limits.
+        //       Abort would then need moving and finally feedback of current position provided to this
+        //       class in order to update the ui. 
         while (mFocusCurrentPosition != mFocusTargetPosition && !mStopFocusThread && !mFocusAbort)
         {
-            // delayMicroseconds should busyloop for <= 100uS            
-            digitalWrite(OUTPUT_PIN_STEP, 1);
-            delayMicroseconds(MIN_STEP_PULSE_HOLD.count());
-            digitalWrite(OUTPUT_PIN_STEP, 0);
+            mMotorController.StepMotor();
 
             focusDir == FOCUS_OUTWARD ? mFocusCurrentPosition++ : mFocusCurrentPosition--;
             FocusAbsPosN[0].value = mFocusCurrentPosition;
@@ -465,10 +393,21 @@ void MUPAstroCAT::_ContinualFocusToTarget()
     }
 }
 
-void MUPAstroCAT::_SetFocusDirection(FocusDirection dir)
+bool MUPAstroCAT::_Disconnect()
 {
-    // TODO: If backlash becomes an issue, track last movement direction
-    //       and if direction change requested account for backlash by stepping X times.
-    digitalWrite(OUTPUT_PIN_DIR, dir == FOCUS_OUTWARD ? 0 : 1);
-    delayMicroseconds(MIN_SETUP_DELAY.count());
+    AbortFocuser();
+
+    // Notify focus thread to exit.
+    {
+        std::lock_guard<std::mutex> lock(mFocusLock);
+        mStopFocusThread = true;
+    }
+    mCheckFocusCondition.notify_one();
+
+    if(mFocusThread.joinable()) 
+        mFocusThread.join();
+
+    mMotorController.Disable();
+
+    return true;
 }

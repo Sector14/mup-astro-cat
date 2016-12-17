@@ -7,6 +7,8 @@
 
 #include "libindi/indifocuser.h"
 
+#include "motorcontroller.h"
+
 class MUPAstroCAT : public INDI::Focuser
 {
 public:
@@ -25,7 +27,7 @@ public:
 
     bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n) override;
     bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n) override;
-    
+
     //
     // Focuser Interface
     //
@@ -43,7 +45,8 @@ private:
     ILight mFaultLight;
     ILightVectorProperty  mStatusLightProperty;
 
-private:
+    MotorController mMotorController;
+
     std::mutex mFocusLock; // Used for: 
                            //  1 - mCheckFocusCondition
                            //  2 - mFocusTargetPosition and mFocusCurrentPosition changes
@@ -55,7 +58,6 @@ private:
     std::atomic<bool> mStopFocusThread{ false };
     std::thread mFocusThread;
 
-    bool _Disconnect();        
     void _ContinualFocusToTarget();
-    void _SetFocusDirection(FocusDirection dir);    
+    bool _Disconnect();
 };
