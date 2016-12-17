@@ -16,10 +16,15 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+    
+    IMPORTANT:
+        - Expects wiringPiSetupGpio to have already been setup.
+
     TODO:
         - Expose Full/Half/Wave step modes.
         - Support configuration of control pins
-    Notes:
+
+    DRV8805 Notes:    
         - Max Step Frequency: 250KHz
         - Min High/Low Pulse duration 1.9uS
         - Reset pulse width: 20uS
@@ -34,7 +39,6 @@
 #include <wiringPi.h>
 
 #include "motorcontroller.h"
-
 
 //////////////////////////////////////////////////////////////////////
 // Constants
@@ -59,13 +63,17 @@ const int INPUT_PIN_nHOME = 12;
 const int INPUT_PIN_nFAULT = 6;
 
 //////////////////////////////////////////////////////////////////////
+// Statics
+//////////////////////////////////////////////////////////////////////
+
+std::function<void(void)> MotorController::sFaultChangeCallback;
+
+//////////////////////////////////////////////////////////////////////
 // Construction/Destruction
 //////////////////////////////////////////////////////////////////////
 
 MotorController::MotorController()
 {
-    wiringPiSetupGpio();
-
     // Hat EEPROM should have configured i/o pins but just in case
     pinMode(OUTPUT_PIN_nENABLE, OUTPUT);
     pinMode(OUTPUT_PIN_RESET, OUTPUT); 
@@ -78,7 +86,7 @@ MotorController::MotorController()
     pinMode(INPUT_PIN_nFAULT, INPUT);
 
     // Keep disabled until initial connection
-    digitalWrite(OUTPUT_PIN_nENABLE, 1);
+    digitalWrite(OUTPUT_PIN_nENABLE, 1);    
 }
 
 MotorController::~MotorController()
@@ -118,6 +126,11 @@ void MotorController::StepMotor()
     digitalWrite(OUTPUT_PIN_STEP, 0);
 }
 
+bool MotorController::hasFault() const
+{
+    return digitalRead(INPUT_PIN_nFAULT) == 0;
+}
+
 //////////////////////////////////////////////////////////////////////
 // Focuser Private
 //////////////////////////////////////////////////////////////////////
@@ -129,4 +142,16 @@ void MotorController::SetFocusDirection(FocusDirection dir)
 
     digitalWrite(OUTPUT_PIN_DIR, dir == FocusDirection::CLOCKWISE ? 1 : 0);
     delayMicroseconds(MIN_SETUP_DELAY.count());
+}
+
+//////////////////////////////////////////////////////////////////////
+// Class Statics 
+//////////////////////////////////////////////////////////////////////
+
+void MotorController::SetFaultChangeCallback( std::function<void(void)> callback ) 
+{
+    MotorController::sFaultChangeCallback = callback;
+
+    // Setup ISR for monitoring nFault pin
+    wiringPiISR( INPUT_PIN_nFAULT, INT_EDGE_BOTH, []() { sFaultChangeCallback(); } );     
 }

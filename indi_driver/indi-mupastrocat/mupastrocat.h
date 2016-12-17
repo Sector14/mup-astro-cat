@@ -39,7 +39,8 @@ public:
     
     bool AbortFocuser() override;
 
-    void OnPinNotFaultChanged(void);
+private:
+    void _OnFaultStatusChanged(void);
 
 private:
     ILight mFaultLight;

@@ -45,9 +45,6 @@
 
 const char* DEFAULT_DEVICE_NAME = "MUP Astro CAT";
 
-// TODO: Pin should be moved to motor controller along with handler
-const int INPUT_PIN_nFAULT = 6;
-
 //////////////////////////////////////////////////////////////////////
 // Driver Instance
 //////////////////////////////////////////////////////////////////////
@@ -101,14 +98,7 @@ void ISSnoopDevice (XMLEle *root)
 
 MUPAstroCAT::MUPAstroCAT()
 {
-    // TODO: This is really something the motor controller needs
-    //       as it handles wiring pi.
-    // Setup ISR for monitoring nFault pin
-    if (wiringPiISR(INPUT_PIN_nFAULT, INT_EDGE_BOTH,
-                    []() { sgMupAstroCAT->OnPinNotFaultChanged(); }) < 0) 
-    {
-        // TODO: Log non-fatal error.
-    }
+    wiringPiSetupGpio();
 
     SetFocuserCapability( FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | 
                           FOCUSER_CAN_ABORT | FOCUSER_HAS_VARIABLE_SPEED );
@@ -131,6 +121,8 @@ bool MUPAstroCAT::Connect()
         return true;
 
     mMotorController.Enable();
+
+    MotorController::SetFaultChangeCallback( [this]() { _OnFaultStatusChanged(); } );
 
     IDMessage(getDeviceName(), "Connected to device.");
 
@@ -261,7 +253,6 @@ IPState MUPAstroCAT::MoveAbsFocuser(uint32_t ticks)
     {
         std::lock_guard<std::mutex> lock(mFocusLock);
 
-        // TODO: Min/max position needs to be set on motorcontroller
         mFocusTargetPosition = std::max( std::min(ticks,static_cast<uint32_t>(FocusAbsPosN[0].max)),
                                          static_cast<uint32_t>(FocusAbsPosN[0].min) );
         
@@ -322,12 +313,9 @@ bool MUPAstroCAT::AbortFocuser()
 // Interrupt Handlers
 //////////////////////////////////////////////////////////////////////
 
-void MUPAstroCAT::OnPinNotFaultChanged()
+void MUPAstroCAT::_OnFaultStatusChanged()
 {
-    // CODEREVIEW: fault pin really belongs on the motor controller, however
-    //  it needs to notify this class in order to set the indi status. 
-    //  Need event/callback.
-    const bool fault = digitalRead(INPUT_PIN_nFAULT) == 0;
+    const bool fault = mMotorController.hasFault();
 
     if (fault != (mFaultLight.s == IPS_ALERT))
     {
@@ -340,7 +328,6 @@ void MUPAstroCAT::OnPinNotFaultChanged()
 // Focuser Private
 //////////////////////////////////////////////////////////////////////
 
-// TODO: Feedback to astrocat when positions changed.
 void MUPAstroCAT::_ContinualFocusToTarget()
 {
     while( ! mStopFocusThread )
@@ -358,11 +345,11 @@ void MUPAstroCAT::_ContinualFocusToTarget()
         mMotorController.SetFocusDirection(focusDir == FOCUS_OUTWARD ? MotorController::FocusDirection::CLOCKWISE : 
                                                                        MotorController::FocusDirection::ANTI_CLOCKWISE);
 
-        // TODO: Instead of single stepping and switching to a StepMotor(numSteps) call
-        //       without blocking, would need thread moving into controller. In turn that means moving
+        // TODO: Instead of single stepping could switch to a StepMotor(numSteps) call but to avoid
+        //       blocking it would need thread moving into controller. In turn that means moving
         //       current and target pos tracking which in turn means moving the movement limits.
         //       Abort would then need moving and finally feedback of current position provided to this
-        //       class in order to update the ui. 
+        //       class in order to update the ui at a limited rate with a final update on completion/abort.
         while (mFocusCurrentPosition != mFocusTargetPosition && !mStopFocusThread && !mFocusAbort)
         {
             mMotorController.StepMotor();
@@ -406,6 +393,8 @@ bool MUPAstroCAT::_Disconnect()
 
     if(mFocusThread.joinable()) 
         mFocusThread.join();
+
+    MotorController::SetFaultChangeCallback(nullptr);
 
     mMotorController.Disable();
 
