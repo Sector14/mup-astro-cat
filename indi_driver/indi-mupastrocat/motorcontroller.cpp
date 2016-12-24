@@ -22,7 +22,8 @@
 
     TODO:
         - Expose Full/Half/Wave step modes.
-        - Support configuration of control pins
+        - Support configuration of control pins.
+        - Account for backlash during direction change.
 
     DRV8805 Notes:    
         - Max Step Frequency: 250KHz
@@ -57,7 +58,7 @@ const int OUTPUT_PIN_RESET = 20;
 const int OUTPUT_PIN_SM0 = 16;
 const int OUTPUT_PIN_SM1 = 26;
 const int OUTPUT_PIN_DIR = 19;
-const int OUTPUT_PIN_STEP = 23;
+const int OUTPUT_PIN_STEP = 13;
 
 const int INPUT_PIN_nHOME = 12;
 const int INPUT_PIN_nFAULT = 6;
@@ -98,7 +99,7 @@ MotorController::~MotorController()
 
 void MotorController::Enable()
 {
-    digitalWrite(OUTPUT_PIN_nENABLE, 1);
+    digitalWrite(OUTPUT_PIN_nENABLE, 0);
 
     digitalWrite(OUTPUT_PIN_RESET, 1);
     delayMicroseconds(MIN_STEP_PULSE_HOLD.count());

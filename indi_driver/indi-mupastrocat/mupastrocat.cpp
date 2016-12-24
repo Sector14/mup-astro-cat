@@ -18,8 +18,10 @@
 
     Future TODO:- 
         - Switch to xml skeleton file to allow re-configuring driver pins and values 
-        - Temperature reading/compensation/calibration
-        - focuser thread and related properties/pin io can be isolated in a motor class.
+        - Temperature display/compensation/calibration    
+        - separate out the focuser thread and related properties
+        - OPTIONS_TAB for backlash and reset/zero button.
+        - OPTIONS_TAB for max travel setting  
     Extra Notes:
         - Expects user to move drawtube fully in and "reset" to reach initial zero state
         - See: http://focuser.com/focusmax.php
@@ -174,16 +176,17 @@ bool MUPAstroCAT::initProperties()
     
     // TODO: These should be configurable but it depends on the draw tube in use
     //       6135 steps per 1" of travel. Need to add a dropdown for draw tube selection then recalc.
+    //       or just expose via options tab for user to set. 
 
     // Relative Movement limits
     FocusRelPosN[0].min = 0.0;
-    FocusRelPosN[0].max = 5328.0;
+    FocusRelPosN[0].max = 7000.0;
     FocusRelPosN[0].value = 0;
     FocusRelPosN[0].step = 100;
 
     // Absolute Movement limits
     FocusAbsPosN[0].min = 0.0;
-    FocusAbsPosN[0].max = 5328.0;
+    FocusAbsPosN[0].max = 7000.0;
     FocusAbsPosN[0].value = 0;
     FocusAbsPosN[0].step = 100;
  
@@ -342,8 +345,8 @@ void MUPAstroCAT::_ContinualFocusToTarget()
         
         FocusDirection focusDir = mFocusTargetPosition > mFocusCurrentPosition ? FOCUS_OUTWARD : FOCUS_INWARD;
         
-        mMotorController.SetFocusDirection(focusDir == FOCUS_OUTWARD ? MotorController::FocusDirection::CLOCKWISE : 
-                                                                       MotorController::FocusDirection::ANTI_CLOCKWISE);
+        mMotorController.SetFocusDirection(focusDir == FOCUS_OUTWARD ? MotorController::FocusDirection::ANTI_CLOCKWISE : 
+                                                                       MotorController::FocusDirection::CLOCKWISE);
 
         // TODO: Instead of single stepping could switch to a StepMotor(numSteps) call but to avoid
         //       blocking it would need thread moving into controller. In turn that means moving
