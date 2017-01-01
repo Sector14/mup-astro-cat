@@ -2,6 +2,11 @@
 
 ## Autostar
 
+$ raspi-gpio get 15
+$ GPIO 15: level=1 fsel=4 alt=0 func=RXD0 
+$ raspi-gpio get 14
+$ GPIO 14: level=1 fsel=4 alt=0 func=TXD0
+
 Serial Port for autostar uses
 
   * Baud: 9600

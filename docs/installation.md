@@ -23,14 +23,16 @@ to .bashrc
 ## Serial
 
 The built in serial console needs to be disabled to free up the uart for the
-autostar connection. edit /boot/cmdline.txt and remove the console=... entry.
-Or use raspi-config utility and select disable serial console. This will free
-up the uart for use by the autostar.
+autostar connection. edit /boot/cmdline.txt and change the console=... entry
+to console=tty1 and add enable_uart=1 to /boot/config.txt.
 
 The hat eeprom will ensure bluetooth is disabled and uart remapped, but cannot 
 disable the modem service which uses uart0. To disable it use:
     
     systemctl disable hciuart
+
+After rebooting "dmesg | grep tty" should show ttyAMA0 is a PL0011 and /dev/serial0
+should be linked to ttyAMA0.
 
 ## Wifi
 
