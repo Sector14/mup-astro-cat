@@ -25,6 +25,8 @@ public:
     bool initProperties() override;
     bool updateProperties() override;
 
+    bool saveConfigItems(FILE *fp) override;    
+
     bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n) override;
     bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
@@ -45,6 +47,8 @@ private:
 private:
     ILight mFaultLight;
     ILightVectorProperty  mStatusLightProperty;
+    INumber mMinMaxFocusPos[2];
+    INumberVectorProperty mMinMaxFocusPosProperty;
 
     MotorController mMotorController;
 
@@ -61,4 +65,7 @@ private:
 
     void _ContinualFocusToTarget();
     bool _Disconnect();
+
+    double _MinFocusPos() const;
+    double _MaxFocusPos() const;
 };
