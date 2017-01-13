@@ -20,14 +20,11 @@
         - Switch to xml skeleton file to allow re-configuring driver pins and values 
         - Temperature display/compensation/calibration    
         - separate out the focuser thread and related properties
-        - OPTIONS_TAB for backlash and reset/zero button.
-        - OPTIONS_TAB for max travel setting  
+        - OPTIONS_TAB for backlash and reset/zero button.        
     Extra Notes:
         - Expects user to move drawtube fully in and "reset" to reach initial zero state
         - See: http://focuser.com/focusmax.php
-            - 1" motion = 6135 full steps (should be configurable param in case different motors used)
-            - 0.95" draw tube range is 0 to 5828, set max travel somewhere around 5300 to be safe
-            - Mid range start point should be ~2900        
+            - 1" motion = 6135 full steps (should be configurable param in case different motors used)              
 */
 
 #include <algorithm>
@@ -184,10 +181,6 @@ bool MUPAstroCAT::initProperties()
     FocusSpeedN[0].max = 250;
     FocusSpeedN[0].value = 250;
     FocusSpeedN[0].step = 50;
-    
-    // TODO: These should be configurable but it depends on the draw tube in use
-    //       6135 steps per 1" of travel. Need to add a dropdown for draw tube selection then recalc.
-    //       or just expose via options tab for user to set. 
 
     // Relative Movement limits
     FocusRelPosN[0].min = _MinFocusPos();
