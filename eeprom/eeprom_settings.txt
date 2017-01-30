@@ -25,10 +25,10 @@ product_id 0x0001
 product_ver 0x0002
 
 # ASCII vendor string  (max 255 characters)
-vendor "Gary Preston - mups.co.uk"
+vendor "Gary Preston - http://www.mups.co.uk"
 
 # ASCII product string (max 255 characters)
-product "MUP Astro Hat"
+product "MUP Astro CAT"
 
 
 ########################################################################
@@ -66,8 +66,8 @@ setgpio   4     INPUT     NONE        # 1-wire bitbang
 setgpio   6     INPUT     NONE        # /FAULT
 setgpio   12    INPUT     NONE        # /HOME
 setgpio   13    OUTPUT    NONE        # STEP
-setgpio   14    OUTPUT    DEFAULT     # Tx
-setgpio   15    INPUT     DEFAULT     # Rx
+#setgpio   14    ALT0     DEFAULT     # Tx (alt1 = uart1, alt0 = uart0)
+#setgpio   15    ALT0     DEFAULT     # Rx
 setgpio   16    OUTPUT    NONE        # SM0
 setgpio   19    OUTPUT    NONE        # DIR
 setgpio   20    OUTPUT    NONE        # RESET
