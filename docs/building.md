@@ -12,6 +12,8 @@ flashing to the EEPROM on the CAT.
 After building the drivers and programming the EEPROM, refer to installation.md
 for additional PI configuration instructions.
 
+Before building, please refer to "Pre-Stretch Distros" if you are using Jessie
+or an earlier release.
 
 ## Wiring PI
 
@@ -57,11 +59,11 @@ configured eeprom_settings.txt and include a couple of extra overlays
 to configure 1-wire and disable the bluetooth module in order to free
 up the hardware uart for autostar usage.
     
-    dtc -@ -I dts -O dtb -o mup_astro_cat.dtb mup-astro-cat.dts
+    dtc -@ -I dts -O dtb -o mup_astro_cat.dtb mup_astro_cat.dts
     eepmake eeprom_settings.txt mup_astro_cat.eep mup_astro_cat.dtb
     eepflash -w -f=mup_astro_cat.eep -t=24c32
 
-Don't forget to remove the write protect jumper. 
+Don't forget to remove the write protect jumper prior to flashing. 
 
 If all goes well, reboot the pi and look in /proc/device-tree/hat/
 
@@ -69,6 +71,8 @@ It's recommended to erase the eeprom prior to flashing the eep which can
 be done by generating a 4096 byte empty eep file and flashing.
 
     dd if=/dev/zero of=empty.eep bs=1024 count=4
+
+## Further Information
 
 If you're curious about how overlays work documentation can be found at:
 
@@ -85,3 +89,31 @@ It will be using the software uart and requires a fixed core clock. See overlays
 readme for more information in the raspberrypi repo.
 
 
+## Pre-Stretch Distros
+
+Due to a breaking upstream device tree change between Jessie and Stretch, the
+mup_astro_cat.dts device tree file has switched to using "serial" rather than "uart"
+for node names.
+
+As a result of this change, whilst the 1-Wire configuration will still occur, remapping
+of the UART to ALT0 and the two GPIO pins will no longer occur when running the latest
+eeprom image on Jessie or earlier releases.
+
+If you need to remain on Jessie or earlier, either use an eeprom built from v1.0
+(commit c7784853ece16dbd0aeedfa1a500301adfb5b7bd) or patch mup_astro_cat.dst to
+use the old "uart" rather than "serial" naming.
+
+To patch, change fragment3 from
+
+```
+    serial0 = "/soc/serial@7e201000";
+	serial1 = "/soc/serial@7e215040";
+```
+
+back to
+
+```
+    serial0 = "/soc/uart@7e201000";
+    serial1 = "/soc/uart@7e215040";
+
+```

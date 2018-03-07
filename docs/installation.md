@@ -26,6 +26,8 @@ The built in serial console needs to be disabled to free up the uart for the
 autostar connection. edit /boot/cmdline.txt and change the console=... entry
 to console=tty1 and add enable_uart=1 to /boot/config.txt.
 
+Any reference to console=serial1,115200 or console=ttyAMA0,115200 can be left alone.
+
 The hat eeprom will ensure bluetooth is disabled and uart remapped, but cannot 
 disable the modem service which uses uart0. To disable it use:
     

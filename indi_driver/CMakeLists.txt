@@ -43,4 +43,4 @@ target_link_libraries(indi_mupastrocat ${INDI_DRIVER_LIBRARIES} ${M_LIB} ${Wirin
 
 install(TARGETS indi_mupastrocat RUNTIME DESTINATION bin)
 
-install(FILES indi_mupastrocat.xml DESTINATION ${INDI_DATA_DIR})
+install(FILES indi-mupastrocat/indi_mupastrocat.xml DESTINATION ${INDI_DATA_DIR})

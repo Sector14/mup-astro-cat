@@ -33,6 +33,7 @@
 #include <cmath>
 #include <memory>
 #include <thread>
+#include <cstring>
 
 #include <wiringPi.h>
 
@@ -158,10 +159,6 @@ const char * MUPAstroCAT::getDefaultName()
 bool MUPAstroCAT::initProperties()
 {
     INDI::Focuser::initProperties();
-
-    // Replace existing port property with read only reminder that GPIO is in use
-    IUFillText(&PortT[0], "PORT", "Port", "RaspberryPI GPIO");
-    IUFillTextVector(&PortTP, PortT, 1, getDeviceName(), "DEVICE_PORT", "Ports", OPTIONS_TAB, IP_RO, 0, IPS_IDLE);
 
     // Change Focus speed label
     IUFillNumberVector(&FocusSpeedNP,FocusSpeedN,1,getDeviceName(),"FOCUS_SPEED","Speed (steps/second)", MAIN_CONTROL_TAB, IP_RW, 60, IPS_OK);
