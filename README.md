@@ -61,7 +61,18 @@ Version 1.x of the firmware/software is compatible with any revision of
 Version 1 of the hardware. Breaking changes will result in a major version
 bump.
 
+## Auto-Configuration
+
+Note: Due to a breaking upstream device tree name change that occurred 
+between the Jessie and Stretch release, auto remapping of the UART to
+GPIO pins may fail.
+
+An eeprom built with version 1.1 or later is required for Stretch.
+Version 1.0 or earlier is required for releases prior to Stretch.
+
+Please refer to the eeprom section of building.md for further information.
+
 # Copyright
 
-Copyright Gary Preston 2016.
+Copyright Gary Preston 2016
 

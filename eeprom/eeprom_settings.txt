@@ -66,8 +66,8 @@ setgpio   4     INPUT     NONE        # 1-wire bitbang
 setgpio   6     INPUT     NONE        # /FAULT
 setgpio   12    INPUT     NONE        # /HOME
 setgpio   13    OUTPUT    NONE        # STEP
-#setgpio   14    ALT0     DEFAULT     # Tx (alt1 = uart1, alt0 = uart0)
-#setgpio   15    ALT0     DEFAULT     # Rx
+setgpio   14    ALT0      DEFAULT     # Tx (alt1 = uart1, alt0 = uart0)
+setgpio   15    ALT0      DEFAULT     # Rx
 setgpio   16    OUTPUT    NONE        # SM0
 setgpio   19    OUTPUT    NONE        # DIR
 setgpio   20    OUTPUT    NONE        # RESET
