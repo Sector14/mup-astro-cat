@@ -5,14 +5,14 @@ Raspberry PI 3 which provides additional hardware interfaces to
 communicate and control a Meade Autostar, Moonlite focuser and
 temperature sensors.
 
-![MUP Astro CAT](https://bitbucket.org/BWGaryP/mup-astro-cat/raw/master/docs/mup_astro_cat_on_pi.jpg)
+![MUP Astro CAT](docs/mup_astro_cat_on_pi.jpg)
 
 This repository contains the firmware and driver project files
 needed to build and use the MUP Astro CAT.
 
 Kicad hardware schematic and pcb files are available at:
 
-   https://bitbucket.org/BWGaryP/mup-astro-cat-hardware/
+   https://github.com/Sector14/mup-astro-cat-hardware
 
 Please refer to the additional documentation in the docs/ directory for
 information on build/installation instructions and testing notes.
