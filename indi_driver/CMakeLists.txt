@@ -19,7 +19,7 @@ set(BIN_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/bin")
 # Dependencies
 ######################################################################
   
-find_package(INDI REQUIRED)
+find_package(INDI 1.8.4 REQUIRED)
 find_package(WiringPi REQUIRED)
 find_package(Threads REQUIRED)
 

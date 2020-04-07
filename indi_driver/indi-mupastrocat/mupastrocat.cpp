@@ -16,15 +16,15 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-    Future TODO:- 
-        - Switch to xml skeleton file to allow re-configuring driver pins and values 
-        - Temperature display/compensation/calibration    
+    Future TODO:-
+        - Switch to xml skeleton file to allow re-configuring driver pins and values
+        - Temperature display/compensation/calibration
         - separate out the focuser thread and related properties
-        - OPTIONS_TAB for backlash and reset/zero button.        
+        - OPTIONS_TAB for backlash and reset/zero button.
     Extra Notes:
         - Expects user to move drawtube fully in and "reset" to reach initial zero state
         - See: http://focuser.com/focusmax.php
-            - 1" motion = 6135 full steps (should be configurable param in case different motors used)              
+            - 1" motion = 6135 full steps (should be configurable param in case different motors used)
 */
 
 #include <algorithm>
@@ -102,8 +102,8 @@ MUPAstroCAT::MUPAstroCAT()
 {
     wiringPiSetupGpio();
 
-    SetFocuserCapability( FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | 
-                          FOCUSER_CAN_ABORT | FOCUSER_HAS_VARIABLE_SPEED );
+    FI::SetCapability( FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE |
+                       FOCUSER_CAN_ABORT | FOCUSER_HAS_VARIABLE_SPEED );
 }
 
 MUPAstroCAT::~MUPAstroCAT()
@@ -141,9 +141,9 @@ bool MUPAstroCAT::Disconnect()
 
     if (!isConnected())
         return true;
-    
+
     IDMessage(getDeviceName(), "Disconnecting from device.");
-    
+
     return _Disconnect();;
 }
 
@@ -171,7 +171,7 @@ bool MUPAstroCAT::initProperties()
     // Allow runtime adjustments to min/max absolute and relative travel limits
     IUFillNumber(&mMinMaxFocusPos[0], "MINPOS", "Minimum Position", "%6.0f", 0.0, 65000.0, 1000.0, DEFAULT_MIN_POSITION );
     IUFillNumber(&mMinMaxFocusPos[1], "MAXPOS", "Maximum Position", "%6.0f", 0.0, 65000.0, 1000.0, DEFAULT_MAX_POSITION );
-    IUFillNumberVector(&mMinMaxFocusPosProperty, mMinMaxFocusPos, 2, getDeviceName(), "FOCUS_MINMAXPOSITION", "Travel Limits", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);    
+    IUFillNumberVector(&mMinMaxFocusPosProperty, mMinMaxFocusPos, 2, getDeviceName(), "FOCUS_MINMAXPOSITION", "Travel Limits", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
 
     // Arbitrary speed range until motor testing complete.
     FocusSpeedN[0].min = 1;
@@ -190,7 +190,7 @@ bool MUPAstroCAT::initProperties()
     FocusAbsPosN[0].max = _MaxFocusPos();
     FocusAbsPosN[0].value = 0;
     FocusAbsPosN[0].step = 100;
- 
+
     return true;
 }
 
@@ -290,7 +290,7 @@ IPState MUPAstroCAT::MoveAbsFocuser(uint32_t ticks)
 
         mFocusTargetPosition = std::max( std::min(ticks,static_cast<uint32_t>(FocusAbsPosN[0].max)),
                                          static_cast<uint32_t>(FocusAbsPosN[0].min) );
-        
+
         mFocusAbort = false;
 
         // Already there?
@@ -315,16 +315,16 @@ IPState MUPAstroCAT::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
             if (mFocusTargetPosition >= ticks && mFocusTargetPosition - ticks >= FocusRelPosN[0].min)
                 mFocusTargetPosition -= ticks;
             else
-                mFocusTargetPosition = FocusRelPosN[0].min;        
+                mFocusTargetPosition = FocusRelPosN[0].min;
         }
-        else 
+        else
         {
             if (mFocusTargetPosition + ticks <= FocusRelPosN[0].max)
                 mFocusTargetPosition += ticks;
             else
                 mFocusTargetPosition = FocusRelPosN[0].max;
         }
-            
+
         mFocusAbort = false;
 
         // Already there?
@@ -338,7 +338,7 @@ IPState MUPAstroCAT::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 }
 
 bool MUPAstroCAT::AbortFocuser()
-{    
+{
     mFocusAbort = true;
 
     return true;
@@ -374,10 +374,10 @@ void MUPAstroCAT::_ContinualFocusToTarget()
         mCheckFocusCondition.wait(lock, [&]() {
                 return mFocusCurrentPosition != mFocusTargetPosition || mStopFocusThread;
              });
-        
+
         FocusDirection focusDir = mFocusTargetPosition > mFocusCurrentPosition ? FOCUS_OUTWARD : FOCUS_INWARD;
-        
-        mMotorController.SetFocusDirection(focusDir == FOCUS_OUTWARD ? MotorController::FocusDirection::ANTI_CLOCKWISE : 
+
+        mMotorController.SetFocusDirection(focusDir == FOCUS_OUTWARD ? MotorController::FocusDirection::ANTI_CLOCKWISE :
                                                                        MotorController::FocusDirection::CLOCKWISE);
 
         // TODO: Instead of single stepping could switch to a StepMotor(numSteps) call but to avoid
@@ -396,7 +396,7 @@ void MUPAstroCAT::_ContinualFocusToTarget()
             // Rough delay based on target steps per second.
             std::this_thread::sleep_for(std::chrono::microseconds(1000000) / FocusSpeedN[0].value);
         }
-        
+
         FocusAbsPosN[0].value = mFocusCurrentPosition;
         FocusAbsPosNP.s = IPS_OK;
         FocusRelPosNP.s = IPS_OK;
@@ -405,12 +405,12 @@ void MUPAstroCAT::_ContinualFocusToTarget()
         IDSetNumber(&FocusRelPosNP, nullptr);
         IDSetNumber(&FocusTimerNP, nullptr);
 
-        // May have exited loop early due to an abort focus. Ensure target equals current to avoid 
+        // May have exited loop early due to an abort focus. Ensure target equals current to avoid
         // a future spurious wakeup being seen as anything other than spurious.
         // CODEREVIEW: Would be better if thread treated mFocusTargetPosition as read only and
         //             instead used mFocusAbort in the condition var spurious wakeup test. However,
         //             would that mean (even though it's atomic) mFocusAbort can only be changed within
-        //             the mFocusLock mutex? 
+        //             the mFocusLock mutex?
         mFocusTargetPosition = mFocusCurrentPosition;
     }
 }
@@ -426,7 +426,7 @@ bool MUPAstroCAT::_Disconnect()
     }
     mCheckFocusCondition.notify_one();
 
-    if(mFocusThread.joinable()) 
+    if(mFocusThread.joinable())
         mFocusThread.join();
 
     MotorController::SetFaultChangeCallback(nullptr);
