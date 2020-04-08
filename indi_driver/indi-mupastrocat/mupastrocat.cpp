@@ -35,8 +35,6 @@
 #include <thread>
 #include <cstring>
 
-#include <wiringPi.h>
-
 #include "mupastrocat.h"
 
 //////////////////////////////////////////////////////////////////////
@@ -100,8 +98,6 @@ void ISSnoopDevice (XMLEle *root)
 
 MUPAstroCAT::MUPAstroCAT()
 {
-    wiringPiSetupGpio();
-
     FI::SetCapability( FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE |
                        FOCUSER_CAN_ABORT | FOCUSER_HAS_VARIABLE_SPEED );
 }

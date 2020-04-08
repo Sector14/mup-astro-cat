@@ -75,6 +75,8 @@ std::function<void(void)> MotorController::sFaultChangeCallback;
 
 MotorController::MotorController()
 {
+    wiringPiSetupGpio();
+
     // Hat EEPROM should have configured i/o pins but just in case
     pinMode(OUTPUT_PIN_nENABLE, OUTPUT);
     pinMode(OUTPUT_PIN_RESET, OUTPUT); 
