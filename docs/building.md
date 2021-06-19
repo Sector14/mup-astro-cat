@@ -42,6 +42,16 @@ http://indilib.org for instructions on building/installing INDI.
 
 Building the MUP Astro CAT driver follows a similar process.
 
+  cd indi_driver/
+  mkdir build; cd build
+  ccmake ..
+
+Configure install prefix /usr/local/stow/mup-astro-cat
+
+  make
+
+Then as root "make install" and from the stow directory "stow mup-astro-cat"
+
 ## EEPROM Programming
 
 When building this board yourself, the EEPROM will need flashing with a suitable
