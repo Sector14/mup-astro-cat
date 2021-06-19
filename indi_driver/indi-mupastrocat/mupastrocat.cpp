@@ -1,7 +1,7 @@
 /*
     Driver Type: MUP Astro CAT focuser and temperature INDI Driver
 
-    Copyright © 2016 Gary Preston (gary@mups.co.uk)
+    Copyright © 2016-2021 Gary Preston (gary@mups.co.uk)
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -196,8 +196,8 @@ bool MUPAstroCAT::updateProperties()
 
     if (isConnected())
     {
-        defineLight(&mStatusLightProperty);
-        defineNumber(&mMinMaxFocusPosProperty);
+        defineProperty(&mStatusLightProperty);
+        defineProperty(&mMinMaxFocusPosProperty);
     }
     else
     {
