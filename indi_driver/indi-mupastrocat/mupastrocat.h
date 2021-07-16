@@ -25,10 +25,11 @@ public:
     bool initProperties() override;
     bool updateProperties() override;
 
-    bool saveConfigItems(FILE *fp) override;    
-
     bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n) override;
     bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n) override;
+
+protected:
+    bool saveConfigItems(FILE *fp) override;
 
     //
     // Focuser Interface
@@ -38,7 +39,11 @@ public:
     IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration) override;
     IPState MoveAbsFocuser(uint32_t ticks) override;
     IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
-    
+
+    bool SyncFocuser(uint32_t ticks);
+    // TODO: Remove TravelLimits custom props and use this
+    // bool SetFocuserMaxPosition(uint32_t ticks);
+
     bool AbortFocuser() override;
 
 private:
@@ -52,7 +57,7 @@ private:
 
     MotorController mMotorController;
 
-    std::mutex mFocusLock; // Used for: 
+    std::mutex mFocusLock; // Used for:
                            //  1 - mCheckFocusCondition
                            //  2 - mFocusTargetPosition and mFocusCurrentPosition changes
     std::condition_variable mCheckFocusCondition;

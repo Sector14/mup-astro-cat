@@ -98,8 +98,11 @@ void ISSnoopDevice (XMLEle *root)
 
 MUPAstroCAT::MUPAstroCAT()
 {
-    FI::SetCapability( FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE |
-                       FOCUSER_CAN_ABORT | FOCUSER_HAS_VARIABLE_SPEED );
+    FI::SetCapability( FOCUSER_CAN_ABS_MOVE |
+                       FOCUSER_CAN_REL_MOVE |
+                       FOCUSER_CAN_ABORT |
+                       FOCUSER_CAN_SYNC |
+                       FOCUSER_HAS_VARIABLE_SPEED );
 }
 
 MUPAstroCAT::~MUPAstroCAT()
@@ -331,6 +334,26 @@ IPState MUPAstroCAT::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
     mCheckFocusCondition.notify_one();
 
     return IPS_BUSY;
+}
+
+// Sync current position to "ticks" regardless of physical focus
+bool MUPAstroCAT::SyncFocuser(uint32_t ticks)
+{
+    // Enforce min/max limits
+    if (ticks < static_cast<uint32_t>(FocusAbsPosN[0].min) ||
+        ticks > static_cast<uint32_t>(FocusAbsPosN[0].max) )
+        return false;
+
+    AbortFocuser();
+
+    std::lock_guard<std::mutex> lock(mFocusLock);
+
+    mFocusCurrentPosition = ticks;
+    mFocusTargetPosition = ticks;
+
+    mFocusAbort = false;
+
+    return true;
 }
 
 bool MUPAstroCAT::AbortFocuser()
