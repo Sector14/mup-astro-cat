@@ -29,8 +29,6 @@ public:
     bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
 protected:
-    bool saveConfigItems(FILE *fp) override;
-
     //
     // Focuser Interface
     //
@@ -41,8 +39,6 @@ protected:
     IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
 
     bool SyncFocuser(uint32_t ticks);
-    // TODO: Remove TravelLimits custom props and use this
-    // bool SetFocuserMaxPosition(uint32_t ticks);
 
     bool AbortFocuser() override;
 
@@ -52,8 +48,6 @@ private:
 private:
     ILight mFaultLight;
     ILightVectorProperty  mStatusLightProperty;
-    INumber mMinMaxFocusPos[2];
-    INumberVectorProperty mMinMaxFocusPosProperty;
 
     MotorController mMotorController;
 

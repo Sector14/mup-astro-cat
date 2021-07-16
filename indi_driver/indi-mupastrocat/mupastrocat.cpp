@@ -167,11 +167,6 @@ bool MUPAstroCAT::initProperties()
     IUFillLight(&mFaultLight, "FOCUSER_FAULT_VALUE", "Motor Fault", IPS_IDLE);
     IUFillLightVector(&mStatusLightProperty, &mFaultLight, 1, getDeviceName(), "FOCUSER_STATUS", "Status", MAIN_CONTROL_TAB, IPS_IDLE);
 
-    // Allow runtime adjustments to min/max absolute and relative travel limits
-    IUFillNumber(&mMinMaxFocusPos[0], "MINPOS", "Minimum Position", "%6.0f", 0.0, 65000.0, 1000.0, DEFAULT_MIN_POSITION );
-    IUFillNumber(&mMinMaxFocusPos[1], "MAXPOS", "Maximum Position", "%6.0f", 0.0, 65000.0, 1000.0, DEFAULT_MAX_POSITION );
-    IUFillNumberVector(&mMinMaxFocusPosProperty, mMinMaxFocusPos, 2, getDeviceName(), "FOCUS_MINMAXPOSITION", "Travel Limits", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
-
     // Arbitrary speed range until motor testing complete.
     FocusSpeedN[0].min = 1;
     FocusSpeedN[0].max = 250;
@@ -179,16 +174,22 @@ bool MUPAstroCAT::initProperties()
     FocusSpeedN[0].step = 50;
 
     // Relative Movement limits
-    FocusRelPosN[0].min = _MinFocusPos();
-    FocusRelPosN[0].max = _MaxFocusPos();;
+    FocusRelPosN[0].min = DEFAULT_MIN_POSITION;
+    FocusRelPosN[0].max = DEFAULT_MAX_POSITION;
     FocusRelPosN[0].value = 0;
     FocusRelPosN[0].step = 100;
 
     // Absolute Movement limits
-    FocusAbsPosN[0].min = _MinFocusPos();
-    FocusAbsPosN[0].max = _MaxFocusPos();
+    FocusAbsPosN[0].min = DEFAULT_MIN_POSITION;
+    FocusAbsPosN[0].max = DEFAULT_MAX_POSITION;
     FocusAbsPosN[0].value = 0;
     FocusAbsPosN[0].step = 100;
+
+    // Overall Travel Movement limits
+    FocusMaxPosN[0].min = DEFAULT_MIN_POSITION;
+    FocusMaxPosN[0].max = DEFAULT_MAX_POSITION;
+    FocusMaxPosN[0].value = DEFAULT_MAX_POSITION;
+    FocusMaxPosN[0].step = 500;
 
     return true;
 }
@@ -200,24 +201,11 @@ bool MUPAstroCAT::updateProperties()
     if (isConnected())
     {
         defineProperty(&mStatusLightProperty);
-        defineProperty(&mMinMaxFocusPosProperty);
     }
     else
     {
         deleteProperty(mStatusLightProperty.name);
-        deleteProperty(mMinMaxFocusPosProperty.name);
     }
-
-    return true;
-}
-
-//////////////////////////////////////////////////////////////////////
-
-bool MUPAstroCAT::saveConfigItems(FILE *fp)
-{
-    INDI::Focuser::saveConfigItems(fp);
-
-    IUSaveConfigNumber(fp, &mMinMaxFocusPosProperty);
 
     return true;
 }
@@ -230,20 +218,7 @@ bool MUPAstroCAT::ISNewNumber (const char *dev, const char *name, double values[
     // Property for this device?
     if (strcmp(dev, getDeviceName()) == 0)
     {
-        if (strcmp(name, mMinMaxFocusPosProperty.name) == 0)
-        {
-            IUUpdateNumber(&mMinMaxFocusPosProperty, values, names, n);
-            mMinMaxFocusPosProperty.s = IPS_OK;
-            IDSetNumber(&mMinMaxFocusPosProperty, nullptr);
-
-            // Adjust abs/rel movement limits to match requested limits
-            FocusAbsPosN[0].min = FocusRelPosN[0].min = _MinFocusPos();
-            FocusAbsPosN[0].max = FocusRelPosN[0].max = _MaxFocusPos();
-            IDSetNumber(&FocusAbsPosNP, "Focuser absolute limits set to [%g,%g]", FocusAbsPosN[0].min, FocusAbsPosN[0].max);
-            IDSetNumber(&FocusAbsPosNP, nullptr);
-
-            return true;
-        }
+        // TODO: Handle temp sensor
     }
 
     return INDI::Focuser::ISNewNumber(dev,name,values,names,n);
@@ -453,18 +428,4 @@ bool MUPAstroCAT::_Disconnect()
     mMotorController.Disable();
 
     return true;
-}
-
-//////////////////////////////////////////////////////////////////////
-// Private Properties
-//////////////////////////////////////////////////////////////////////
-
-double MUPAstroCAT::_MinFocusPos() const
-{
-    return mMinMaxFocusPos[0].value;
-}
-
-double MUPAstroCAT::_MaxFocusPos() const
-{
-    return mMinMaxFocusPos[1].value;
 }
