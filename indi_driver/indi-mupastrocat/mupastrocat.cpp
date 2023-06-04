@@ -43,7 +43,7 @@
 
 const char* DEFAULT_DEVICE_NAME = "MUP Astro CAT";
 const double DEFAULT_MIN_POSITION = 0.0;
-const double DEFAULT_MAX_POSITION = 7000.0;
+const double DEFAULT_MAX_POSITION = 6000.0;
 
 //////////////////////////////////////////////////////////////////////
 // Driver Instance
